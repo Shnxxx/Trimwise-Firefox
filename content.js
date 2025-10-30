@@ -86,6 +86,32 @@ styleSheet.textContent = `
         transform: translateY(0);
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
+    
+    /* Settings button in composer */
+    .trimwise-settings-btn {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+    }
+    
+    .trimwise-settings-btn:hover {
+        opacity: 0.7;
+    }
+    
+    .trimwise-settings-btn svg {
+        width: 20px;
+        height: 20px;
+        fill: currentColor;
+    }
 `;
 document.head.appendChild(styleSheet);
 
@@ -98,6 +124,7 @@ let allArticles = [];                    // Array of all message article element
 let currentOffset = 0;                   // How many batches beyond the default are shown
 let BATCH_SIZE = 20;                     // Messages to show per "batch" (from settings)
 let showMoreButton = null;               // Reusable button element { wrapper, button }
+let firstVisibleIndex = 0;               // Current start of visible range (for observer checks)
 
 // Change detection cache - prevents unnecessary work
 let lastArticleCount = 0;                // Previous message count
@@ -116,6 +143,11 @@ let messageObserver = null;              // Watches messages to virtualize when 
 // Performance tracking
 let isProcessing = false;                // Prevents concurrent virtualization runs
 let pendingVirtualization = false;       // Flags that virtualization should run after current completes
+let initialStabilizationComplete = false; // Prevents virtualization during initial page load
+
+// Virtualization metrics for debugging
+let virtualizedCount = 0;                // Total messages virtualized
+let restoredCount = 0;                   // Total messages restored
 
 // ============================================================================
 // SETTINGS LOADER
@@ -132,11 +164,60 @@ function loadSettings() {
             console.log('[Trimwise] Loaded batch size:', BATCH_SIZE);
         }
         
-        // Initial run after settings are loaded
-        setTimeout(() => {
-            updateVisibleRange();
-        }, 500); // Small delay to let ChatGPT fully render
+        // Wait for articles to appear before initial virtualization
+        waitForArticles();
     });
+}
+
+/**
+ * Wait for conversation articles to be rendered before starting virtualization
+ * Uses exponential backoff to avoid hammering the DOM
+ * CRITICAL: Waits for initial page stabilization to avoid scroll jumping
+ */
+function waitForArticles(attempt = 1) {
+    const articles = document.querySelectorAll('article[data-testid^="conversation-turn-"]');
+    
+    if (articles.length > 0) {
+        console.log(`[Trimwise] Found ${articles.length} articles`);
+        // Wait for ChatGPT to finish initial render and scroll positioning
+        waitForStableState(articles.length);
+    } else if (attempt < 20) {
+        // Retry with exponential backoff (max ~10 seconds)
+        const delay = Math.min(100 * attempt, 1000);
+        // Silently retry
+        setTimeout(() => waitForArticles(attempt + 1), delay);
+    } else {
+        console.warn('[Trimwise] No articles found after 20 attempts - conversation may be empty');
+    }
+}
+
+/**
+ * Wait for the article count to stabilize before starting virtualization
+ * Prevents virtualization during ChatGPT's initial rendering which causes scroll jumps
+ */
+function waitForStableState(lastCount, stableChecks = 0) {
+    setTimeout(() => {
+        const articles = document.querySelectorAll('article[data-testid^="conversation-turn-"]');
+        const currentCount = articles.length;
+        
+        if (currentCount === lastCount) {
+            // Count hasn't changed - increment stability counter
+            stableChecks++;
+            
+            if (stableChecks >= 3) {
+                // Stable for 3 consecutive checks (900ms) - safe to start
+                console.log(`[Trimwise] Page stabilized at ${currentCount} articles, starting virtualization`);
+                initialStabilizationComplete = true;
+                updateVisibleRange();
+            } else {
+                // Keep checking
+                waitForStableState(currentCount, stableChecks);
+            }
+        } else {
+            // Count changed - reset stability counter
+            waitForStableState(currentCount, 0);
+        }
+    }, 300); // Check every 300ms
 }
 
 // ============================================================================
@@ -153,6 +234,8 @@ function updateArticleList() {
     const newArticles = Array.from(
         document.querySelectorAll('article[data-testid^="conversation-turn-"]')
     );
+    
+    // Silent change detection - no logging needed
     
     // Early exit if nothing changed
     // Compare length and endpoints (cheaper than full array comparison)
@@ -199,15 +282,18 @@ function updateVisibleRange() {
         const articlesChanged = updateArticleList();
         
         if (allArticles.length === 0) {
+            // No articles found - silent exit
             isProcessing = false;
             return; // No messages on page
         }
+        
+        // Processing articles - no logging needed
         
         // Calculate visible range based on user's "Show more" clicks
         const total = allArticles.length;
         const visibleCount = Math.min((currentOffset + 1) * BATCH_SIZE, total);
         const hiddenCount = total - visibleCount;
-        const firstVisibleIndex = total - visibleCount;
+        firstVisibleIndex = total - visibleCount; // Update global for observer checks
         
         // Early exit if nothing changed
         if (!articlesChanged && 
@@ -305,10 +391,16 @@ function initializeObservers() {
     // Observer for real message elements - triggers virtualization when far from viewport
     messageObserver = new IntersectionObserver(
         (entries) => {
+            // Don't virtualize during initial page stabilization
+            if (!initialStabilizationComplete) {
+                return;
+            }
+            
             entries.forEach((entry) => {
                 // Message has left the buffer zone - virtualize it
                 if (!entry.isIntersecting && !entry.target.classList.contains('trimwise-hidden')) {
-                    virtualizeMessage(entry.target);
+                    // Add small delay to avoid rapid virtualization during scroll
+                    setTimeout(() => virtualizeMessage(entry.target), 100);
                 }
             });
         },
@@ -331,10 +423,11 @@ function initializeObservers() {
             });
         },
         {
-            // 1200px buffer - larger than message observer
-            // Ensures messages restore before becoming visible
-            rootMargin: '1200px 0px 1200px 0px',
-            threshold: 0
+            // 3000px buffer - much larger than message observer
+            // Wide reactivation zone ensures messages restore well before they appear
+            // Prevents blank space when scrolling up/down
+            rootMargin: '3000px 0px 3000px 0px',
+            threshold: 0.01
         }
     );
 }
@@ -355,19 +448,37 @@ function virtualizeMessage(article) {
         return;
     }
     
+    // CRITICAL: Don't virtualize messages within the visible batch range
+    // Even if they're outside the viewport buffer, they should stay in DOM
+    const index = parseInt(article.dataset.trimwiseIndex, 10);
+    if (index >= firstVisibleIndex) {
+        // This message is within the visible range - don't virtualize
+        // Stop observing to prevent repeated callbacks
+        if (messageObserver) {
+            messageObserver.unobserve(article);
+        }
+        return;
+    }
+    
     // Measure exact height before removal (includes margins, padding)
     const rect = article.getBoundingClientRect();
-    const height = rect.height;
+    let height = rect.height;
     
-    // Skip if height is 0 (element not yet rendered)
+    // Fallback to offsetHeight if getBoundingClientRect returns 0
     if (height === 0) {
-        return;
+        height = article.offsetHeight;
+    }
+    
+    // Guarantee non-zero height with safe minimum fallback
+    // Critical: zero-height placeholders will never trigger intersection observer
+    if (height === 0) {
+        height = 100; // Safe minimum that ensures observer can fire
+        console.warn(`[Trimwise] Message ${article.dataset.trimwiseIndex} had zero height, using fallback`);
     }
     
     // Store parent and position for restoration
     const parent = article.parentNode;
     const nextSibling = article.nextSibling;
-    const index = parseInt(article.dataset.trimwiseIndex, 10);
     
     // Cache the full element (not just HTML - preserves event listeners)
     virtualizedMessages.set(article, {
@@ -397,7 +508,8 @@ function virtualizeMessage(article) {
     // Start observing the placeholder
     placeholderObserver.observe(placeholder);
     
-    console.log(`[Trimwise] Virtualized message ${index}, height: ${height}px`);
+    virtualizedCount++;
+    // Virtualization successful - silent
 }
 
 /**
@@ -436,7 +548,8 @@ function restoreMessage(placeholder) {
     // Start observing the restored message
     messageObserver.observe(element);
     
-    console.log(`[Trimwise] Restored message ${index}`);
+    restoredCount++;
+    // Restoration successful - silent
 }
 
 // ============================================================================
@@ -522,6 +635,9 @@ function updateShowMoreButton(beforeIndex, hidden, total, visible) {
  * 
  * OPTIMIZATION: Only processes mutations that affect conversation articles
  * Ignores other ChatGPT DOM updates (typing indicators, buttons, etc.)
+ * 
+ * CRITICAL: Re-observes messages after DOM mutations to ensure observers
+ * stay attached even when ChatGPT dynamically replaces containers
  */
 const mutationObserver = new MutationObserver((mutations) => {
     // Check if any mutation involves conversation articles
@@ -549,13 +665,41 @@ const mutationObserver = new MutationObserver((mutations) => {
     
     // Trigger virtualization if conversation changed
     if (hasRelevantChanges) {
-        // Debounce slightly to batch rapid changes (e.g., streaming responses)
+        // Debounce to batch rapid changes (e.g., streaming responses, virtualization)
         clearTimeout(mutationObserver._debounceTimer);
         mutationObserver._debounceTimer = setTimeout(() => {
-            updateVisibleRange();
-        }, 100);
+            // Only process if not currently virtualizing/restoring
+            if (!isProcessing) {
+                updateVisibleRange();
+                // Re-attach observers to any messages that might have been replaced
+                reattachObserversIfNeeded();
+            }
+        }, 200); // Longer debounce to prevent glitching during scroll
     }
 });
+
+/**
+ * Re-attach intersection observers to messages after DOM mutations
+ * Ensures observers don't become detached when ChatGPT replaces containers
+ */
+function reattachObserversIfNeeded() {
+    if (!messageObserver || !placeholderObserver) return;
+    
+    // Re-observe all visible messages that aren't virtualized
+    allArticles.forEach((article) => {
+        if (!article.classList.contains('trimwise-hidden') && 
+            !article.classList.contains('trimwise-placeholder') &&
+            !virtualizedMessages.has(article)) {
+            // Silently re-observe (IntersectionObserver handles duplicates)
+            messageObserver.observe(article);
+        }
+    });
+    
+    // Re-observe all placeholders
+    document.querySelectorAll('.trimwise-placeholder').forEach((placeholder) => {
+        placeholderObserver.observe(placeholder);
+    });
+}
 
 /**
  * Start observing ChatGPT's main container for changes
@@ -579,6 +723,57 @@ function startObserving() {
 }
 
 // ============================================================================
+// SETTINGS BUTTON IN COMPOSER
+// ============================================================================
+
+/**
+ * Inject settings button next to the composer
+ * Allows quick access to extension options
+ */
+function injectSettingsButton() {
+    // Check if button already exists
+    if (document.querySelector('.trimwise-settings-btn')) {
+        return;
+    }
+    
+    // Find the trailing area in composer (where voice buttons are)
+    const trailingArea = document.querySelector('[class*="grid-area:trailing"]');
+    
+    if (!trailingArea) {
+        // Composer not found yet, retry later
+        setTimeout(injectSettingsButton, 1000);
+        return;
+    }
+    
+    // Create settings button
+    const settingsBtn = document.createElement('button');
+    settingsBtn.className = 'trimwise-settings-btn';
+    settingsBtn.setAttribute('aria-label', 'Trimwise settings');
+    settingsBtn.setAttribute('title', 'Trimwise settings - Configure visible messages');
+    
+    // Settings icon (gear/cog)
+    settingsBtn.innerHTML = `
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10.707 1.5a1.25 1.25 0 0 0-1.414 0l-1.015 1.015a.75.75 0 0 1-.53.22H6.5a1.25 1.25 0 0 0-1.25 1.25v1.248a.75.75 0 0 1-.22.53L4.015 6.78a1.25 1.25 0 0 0 0 1.414l1.015 1.015a.75.75 0 0 1 .22.53V11a1.25 1.25 0 0 0 1.25 1.25h1.248a.75.75 0 0 1 .53.22l1.015 1.015a1.25 1.25 0 0 0 1.414 0l1.015-1.015a.75.75 0 0 1 .53-.22h1.248A1.25 1.25 0 0 0 14.75 11V9.739a.75.75 0 0 1 .22-.53l1.015-1.015a1.25 1.25 0 0 0 0-1.414l-1.015-1.015a.75.75 0 0 1-.22-.53V3.985a1.25 1.25 0 0 0-1.25-1.25h-1.248a.75.75 0 0 1-.53-.22L10.707 1.5zM10 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
+        </svg>
+    `;
+    
+    // Open options page on click
+    settingsBtn.onclick = () => {
+        chrome.runtime.sendMessage({ action: 'openOptions' });
+    };
+    
+    // Find the best place to insert (before the voice mode buttons)
+    const itemsContainer = trailingArea.querySelector('.flex.items-center.gap-1\\.5, .flex.items-center');
+    
+    if (itemsContainer) {
+        // Insert at the beginning of the container
+        itemsContainer.insertBefore(settingsBtn, itemsContainer.firstChild);
+        console.log('[Trimwise] Settings button injected');
+    }
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -593,6 +788,9 @@ function initialize() {
     
     // Start watching for new messages
     startObserving();
+    
+    // Inject settings button in composer
+    setTimeout(injectSettingsButton, 2000); // Wait for composer to render
 }
 
 // Wait for DOM ready

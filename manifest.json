@@ -5,6 +5,9 @@
   "description": "Dramatically improves performance in long ChatGPT conversations with true virtual scrolling",
   "permissions": ["storage"],
   "host_permissions": ["https://chatgpt.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*"],
