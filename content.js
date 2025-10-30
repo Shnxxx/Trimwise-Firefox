@@ -1,5 +1,5 @@
 /**
- * Trimwise v2.0 - Production-Ready Virtual Scrolling System
+ * Trimwise v2.1 - Production-Ready Virtual Scrolling + Message Collapse System
  * 
  * ARCHITECTURE OVERVIEW:
  * =====================
@@ -8,11 +8,15 @@
  * and replaced with height-preserving placeholders, then seamlessly restored when
  * scrolling brings them back into view.
  * 
+ * NEW IN v2.1: Long user messages are automatically collapsed with expand/collapse
+ * buttons, reducing page weight and improving scroll performance even further.
+ * 
  * KEY OPTIMIZATIONS:
  * - MutationObserver instead of setInterval (95% CPU reduction during idle)
  * - Change detection caching (eliminates unnecessary DOM queries)
  * - IntersectionObserver for viewport detection (native browser optimization)
  * - DOM node removal (70-90% memory reduction vs display:none)
+ * - Message collapse (reduces render time for long messages)
  * - Button element reuse (zero allocation churn)
  * - CSS classes instead of inline styles (faster, cleaner)
  * 
@@ -20,8 +24,9 @@
  * 1. Page loads → inject styles → load user settings
  * 2. MutationObserver detects new messages → triggers virtualization
  * 3. Messages outside viewport + buffer → cached and replaced with placeholders
- * 4. IntersectionObserver detects placeholder entering viewport → restores message
- * 5. User clicks "Show more" → expands visible range → re-virtualizes
+ * 4. Long user messages → collapsed with expand/collapse button
+ * 5. IntersectionObserver detects placeholder entering viewport → restores message
+ * 6. User clicks "Show more" → expands visible range → re-virtualizes
  * 
  * SCROLL POSITION PRESERVATION:
  * - Measure exact height before removal
@@ -112,6 +117,57 @@ styleSheet.textContent = `
         height: 20px;
         fill: currentColor;
     }
+    
+    /* Collapsed message styles */
+    .trimwise-collapsed {
+        max-height: 400px;
+        overflow: hidden;
+        position: relative;
+    }
+    
+    .trimwise-collapsed::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        background: linear-gradient(to bottom, transparent, var(--main-surface-primary, #fff));
+        pointer-events: none;
+    }
+    
+    /* Expand/Collapse button for messages */
+    .trimwise-expand-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        margin-top: 8px;
+        background-color: transparent;
+        color: var(--text-secondary, #6e6e80);
+        border: 1px solid var(--border-light, #e5e5e5);
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+        font-family: inherit;
+        transition: all 0.2s ease;
+    }
+    
+    .trimwise-expand-btn:hover {
+        background-color: var(--surface-secondary, #f7f7f8);
+        border-color: var(--border-medium, #d1d1d6);
+        color: var(--text-primary, #353740);
+    }
+    
+    .trimwise-expand-btn svg {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.2s ease;
+    }
+    
+    .trimwise-expand-btn.expanded svg {
+        transform: rotate(180deg);
+    }
 `;
 document.head.appendChild(styleSheet);
 
@@ -148,6 +204,10 @@ let initialStabilizationComplete = false; // Prevents virtualization during init
 // Virtualization metrics for debugging
 let virtualizedCount = 0;                // Total messages virtualized
 let restoredCount = 0;                   // Total messages restored
+
+// Message collapse state tracking
+const collapsedMessages = new WeakSet(); // Track which messages are collapsed
+const LONG_MESSAGE_THRESHOLD = 600;      // Height in pixels to consider message "long"
 
 // ============================================================================
 // SETTINGS LOADER
@@ -307,6 +367,10 @@ function updateVisibleRange() {
         applyVisibilityRules(firstVisibleIndex);
         manageVirtualization();
         updateShowMoreButton(firstVisibleIndex, hiddenCount, total, visibleCount);
+        
+        // Process message collapse after visibility is set
+        // Delayed slightly to ensure accurate height measurements
+        setTimeout(processMessageCollapse, 50);
         
         // Update cache
         lastArticleCount = total;
@@ -548,8 +612,161 @@ function restoreMessage(placeholder) {
     // Start observing the restored message
     messageObserver.observe(element);
     
+    // Check if restored message should be collapsed
+    // Use requestAnimationFrame to ensure DOM has settled
+    requestAnimationFrame(() => {
+        if (isMessageLong(element) && !element.dataset.trimwiseCollapsible) {
+            collapseMessage(element);
+        }
+    });
+    
     restoredCount++;
     // Restoration successful - silent
+}
+
+// ============================================================================
+// MESSAGE COLLAPSE/EXPAND FUNCTIONALITY
+// ============================================================================
+
+/**
+ * Check if a message is long enough to warrant collapsing
+ * 
+ * @param {HTMLElement} article - The message article element
+ * @returns {boolean} True if message should be collapsed
+ */
+function isMessageLong(article) {
+    // Don't collapse if already in a collapsed state
+    if (collapsedMessages.has(article)) {
+        return false;
+    }
+    
+    // Find the content container within the article
+    // ChatGPT user messages typically have a data-message-author-role="user" attribute
+    const isUserMessage = article.querySelector('[data-message-author-role="user"]');
+    
+    // Only collapse user messages (not assistant responses)
+    if (!isUserMessage) {
+        return false;
+    }
+    
+    // Get the actual content height
+    const height = article.offsetHeight;
+    
+    return height > LONG_MESSAGE_THRESHOLD;
+}
+
+/**
+ * Create an expand/collapse button for a message
+ * 
+ * @param {HTMLElement} article - The message article element
+ * @param {boolean} isExpanded - Initial state
+ * @returns {HTMLElement} The button element
+ */
+function createExpandButton(article, isExpanded = false) {
+    const button = document.createElement('button');
+    button.className = 'trimwise-expand-btn' + (isExpanded ? ' expanded' : '');
+    button.setAttribute('aria-label', isExpanded ? 'Collapse message' : 'Expand message');
+    
+    // Chevron down icon (rotates when expanded)
+    const icon = `
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+    `;
+    
+    button.innerHTML = `${icon}<span>${isExpanded ? 'Show less' : 'Show more'}</span>`;
+    
+    // Toggle collapse state on click
+    button.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMessageCollapse(article, button);
+    };
+    
+    return button;
+}
+
+/**
+ * Toggle the collapsed state of a message
+ * 
+ * @param {HTMLElement} article - The message article element
+ * @param {HTMLElement} button - The expand/collapse button
+ */
+function toggleMessageCollapse(article, button) {
+    // Find the content container to collapse
+    const contentContainer = article.querySelector('[data-message-author-role="user"]')?.closest('div[class*="group"]');
+    
+    if (!contentContainer) {
+        return;
+    }
+    
+    const isCurrentlyCollapsed = contentContainer.classList.contains('trimwise-collapsed');
+    
+    if (isCurrentlyCollapsed) {
+        // Expand
+        contentContainer.classList.remove('trimwise-collapsed');
+        button.classList.add('expanded');
+        button.querySelector('span').textContent = 'Show less';
+        button.setAttribute('aria-label', 'Collapse message');
+        collapsedMessages.delete(article);
+    } else {
+        // Collapse
+        contentContainer.classList.add('trimwise-collapsed');
+        button.classList.remove('expanded');
+        button.querySelector('span').textContent = 'Show more';
+        button.setAttribute('aria-label', 'Expand message');
+        collapsedMessages.add(article);
+    }
+}
+
+/**
+ * Collapse a long message and add expand button
+ * 
+ * @param {HTMLElement} article - The message article element
+ */
+function collapseMessage(article) {
+    // Skip if already processed
+    if (article.dataset.trimwiseCollapsible === 'true') {
+        return;
+    }
+    
+    // Find the content container
+    const contentContainer = article.querySelector('[data-message-author-role="user"]')?.closest('div[class*="group"]');
+    
+    if (!contentContainer) {
+        return;
+    }
+    
+    // Mark as processed
+    article.dataset.trimwiseCollapsible = 'true';
+    
+    // Apply collapsed state
+    contentContainer.classList.add('trimwise-collapsed');
+    collapsedMessages.add(article);
+    
+    // Create and insert expand button
+    const expandButton = createExpandButton(article, false);
+    
+    // Insert button after the content container
+    contentContainer.parentNode.insertBefore(expandButton, contentContainer.nextSibling);
+}
+
+/**
+ * Process all visible messages and collapse long ones
+ */
+function processMessageCollapse() {
+    allArticles.forEach((article) => {
+        // Skip hidden and virtualized messages
+        if (article.classList.contains('trimwise-hidden') || 
+            article.classList.contains('trimwise-placeholder')) {
+            return;
+        }
+        
+        // Check if message should be collapsed
+        if (isMessageLong(article)) {
+            collapseMessage(article);
+        }
+    });
 }
 
 // ============================================================================
@@ -673,6 +890,8 @@ const mutationObserver = new MutationObserver((mutations) => {
                 updateVisibleRange();
                 // Re-attach observers to any messages that might have been replaced
                 reattachObserversIfNeeded();
+                // Process collapse for any new messages (with extra delay for rendering)
+                setTimeout(processMessageCollapse, 100);
             }
         }, 200); // Longer debounce to prevent glitching during scroll
     }
@@ -781,7 +1000,7 @@ function injectSettingsButton() {
  * Initialize extension when DOM is ready
  */
 function initialize() {
-    console.log('[Trimwise] Initializing v2.0 with virtual scrolling');
+    console.log('[Trimwise] Initializing v2.1 with virtual scrolling + message collapse');
     
     // Load user settings (triggers initial virtualization)
     loadSettings();

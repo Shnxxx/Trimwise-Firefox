@@ -1,6 +1,14 @@
 # ChatGPT Lag Fixer – True Virtual Scrolling for Long Chats
 
-A production-ready Chrome extension that **dramatically improves** ChatGPT performance in long conversations by implementing true virtual scrolling. Unlike simple hide/show solutions, Trimwise v2.0 completely removes offscreen messages from the DOM, reducing memory usage by 70-90% and eliminating lag.
+A production-ready Chrome extension that **dramatically improves** ChatGPT performance in long conversations by implementing true virtual scrolling. Unlike simple hide/show solutions, Trimwise v2.1 completely removes offscreen messages from the DOM, reducing memory usage by 70-90% and eliminating lag.
+
+## ✨ What's New in v2.1
+
+**📦 Smart Message Collapsing** - Long messages now collapse automatically:
+- **Long user messages auto-collapse** by default (like Gemini)
+- **Expand/Collapse buttons** for easy toggling
+- **Reduces page weight** and improves scroll performance
+- **Works seamlessly** with virtual scrolling
 
 ## ✨ What's New in v2.0
 
@@ -11,6 +19,12 @@ A production-ready Chrome extension that **dramatically improves** ChatGPT perfo
 - **Smooth scrolling** with zero position jumping
 
 ## 🔧 Features
+
+### Message Collapse System (NEW in v2.1)
+- **Auto-Collapse Long Messages**: User messages over 600px height collapse automatically
+- **Expand/Collapse Button**: Toggle between collapsed/expanded states
+- **Smooth Animations**: Fade gradient at bottom when collapsed
+- **Preserved Across Scrolling**: Collapse state maintained during virtualization
 
 ### Virtual Scrolling Engine
 - **Smart DOM Management**: Offscreen messages completely removed from DOM
@@ -182,6 +196,13 @@ MIT License - see [LICENSE](./LICENSE) file for details
 ---
 
 ## 📌 Version History
+
+### v2.1 (2025-10-30) - Message Collapse
+- Auto-collapse long user messages (600px+ height)
+- Expand/Collapse buttons with smooth animations
+- Reduces page weight and improves scroll performance
+- Integrates seamlessly with virtual scrolling system
+- Collapse state preserved during message restoration
 
 ### v2.0 (2025-10-30) - Virtual Scrolling
 - Complete rewrite with true virtual scrolling

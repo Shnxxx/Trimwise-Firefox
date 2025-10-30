@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "ChatGPT Lag Fixer – Auto-hide old messages in long chats",
-  "version": "2.0",
-  "description": "Dramatically improves performance in long ChatGPT conversations with true virtual scrolling",
+  "version": "2.1",
+  "description": "Dramatically improves performance in long ChatGPT conversations with virtual scrolling and auto-collapse of long messages",
   "permissions": ["storage"],
   "host_permissions": ["https://chatgpt.com/*"],
   "background": {
