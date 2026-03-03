@@ -84,47 +84,8 @@ Long ChatGPT conversations (100+ messages) cause severe performance issues:
 3. **Enable development mode**:
    - Chrome: Toggle on **Developer mode**
    - Firefox: Click **Load Temporary Add-on**
-4. **Firefox install (important)**:
-   - Select the repository's **`manifest.json` file directly** (recommended), OR
-   - Select a `.zip/.xpi` that has `manifest.json` at the **archive root** (not inside a nested folder).
+4. **Load the extension folder** (`manifest.json`) 
 5. **Done!** Extension will appear in your toolbar
-
-#### Common Firefox error: "does not contain a valid manifest"
-This usually means the zip was created with an extra top-level folder.
-
-✅ Correct archive structure:
-```text
-trimwise-firefox.xpi
-├── manifest.json
-├── background.js
-├── content.js
-└── ...
-```
-
-❌ Incorrect archive structure:
-```text
-trimwise-firefox.zip
-└── Trimwise-Firefox/
-    ├── manifest.json
-    └── ...
-```
-
-If you are using `about:debugging`, easiest path is to skip zipping and load `manifest.json` directly.
-
-Another possible error:
-- **`background.service_worker is currently disabled. Add background.scripts.`**
-
-This happens on Firefox builds where MV3 service workers are disabled. The manifest includes a `background.scripts` fallback now, but if you still see this:
-1. Update Firefox to the latest stable version
-2. Retry loading via `about:debugging#/runtime/this-firefox`
-3. If needed, test on Firefox Developer Edition/Nightly where MV3 support is newer
-
-If **"Show more"** does not appear:
-1. Open ChatGPT tab DevTools console
-2. Look for one of these logs from the extension:
-   - `[Trimwise] Show more button mounted` (normal inline placement)
-   - `[Trimwise] Using floating fallback for Show more button` (fallback mode)
-3. If neither appears, reload the ChatGPT tab after loading the add-on
 
 ### Configuration
 1. **Click the extension icon** or right-click → Options
