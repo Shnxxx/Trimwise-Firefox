@@ -1,6 +1,6 @@
 # ChatGPT Lag Fixer – True Virtual Scrolling for Long Chats
 
-A production-ready Chrome extension that **dramatically improves** ChatGPT performance in long conversations by implementing true virtual scrolling. Unlike simple hide/show solutions, Trimwise v2.1 completely removes offscreen messages from the DOM, reducing memory usage by 70-90% and eliminating lag.
+A production-ready Chrome + Firefox extension that **dramatically improves** ChatGPT performance in long conversations by implementing true virtual scrolling. Unlike simple hide/show solutions, Trimwise v2.1 completely removes offscreen messages from the DOM, reducing memory usage by 70-90% and eliminating lag.
 
 ## ✨ What's New in v2.1
 
@@ -70,16 +70,22 @@ Long ChatGPT conversations (100+ messages) cause severe performance issues:
 ### Option 1: Chrome Web Store (Recommended - Coming Soon)
 *Extension will be available on Chrome Web Store after review*
 
-### Option 2: Load Unpacked (Developer Mode)
+### Option 2: Firefox Add-ons (AMO - Coming Soon)
+*Extension will be available on Firefox Add-ons after review*
+
+### Option 3: Load Unpacked (Developer Mode)
 1. **Clone or download** this repository
    ```bash
    git clone https://github.com/garanovich/Trimwise.git
    ```
-2. **Open Chrome** and navigate to `chrome://extensions/`
-3. **Enable "Developer mode"** (toggle in top right)
-4. **Click "Load unpacked"**
-5. **Select the Trimwise folder**
-6. **Done!** Extension will appear in your toolbar
+2. **Open your browser's extensions page**:
+   - Chrome: `chrome://extensions/`
+   - Firefox: `about:debugging#/runtime/this-firefox`
+3. **Enable development mode**:
+   - Chrome: Toggle on **Developer mode**
+   - Firefox: Click **Load Temporary Add-on**
+4. **Load the extension folder** (`manifest.json`) 
+5. **Done!** Extension will appear in your toolbar
 
 ### Configuration
 1. **Click the extension icon** or right-click → Options
@@ -131,7 +137,7 @@ ChatGPT keeps all messages in the DOM as you chat. A 500-message conversation ca
 ## 🔧 Technical Highlights
 
 - **No React internals**: Pure DOM manipulation, works with any ChatGPT update
-- **Chrome MV3 compliant**: Production-ready extension manifest
+- **Chrome + Firefox MV3 compatible**: Production-ready extension manifest
 - **Memory safe**: Proper cleanup prevents leaks
 - **Zero dependencies**: Vanilla JavaScript, no libraries
 - **Well documented**: 600+ lines of inline comments
@@ -163,8 +169,9 @@ cd Trimwise
 
 # Make changes to content.js
 
-# Load unpacked in Chrome
-# chrome://extensions/ → Load unpacked → Select Trimwise folder
+# Load unpacked in Chrome or Firefox
+# Chrome: chrome://extensions/ → Load unpacked → Select Trimwise folder
+# Firefox: about:debugging#/runtime/this-firefox → Load Temporary Add-on → Select manifest.json
 
 # Test on ChatGPT
 # Open long conversation (100+ messages)
