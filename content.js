@@ -96,6 +96,17 @@ styleSheet.textContent = `
         position: relative;
         z-index: 10;
     }
+
+    /* Fallback placement if inline insertion fails */
+    .trimwise-button-wrapper.trimwise-floating-fallback {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0;
+        z-index: 2147483646;
+        pointer-events: auto;
+    }
     
     /* Styled to match ChatGPT's design language */
     .trimwise-button {
@@ -867,8 +878,15 @@ function updateShowMoreButton(beforeIndex, hidden, total, visible) {
         
         if (needsMove) {
             targetElement.parentNode.insertBefore(wrapper, targetElement);
+            wrapper.classList.remove('trimwise-floating-fallback');
             lastButtonPosition = targetElement;
+            console.log('[Trimwise] Show more button mounted', { hidden, visible, total });
         }
+    } else if (hidden > 0) {
+        // Fallback for layouts where article parent isn't a stable insertion point
+        document.body.appendChild(wrapper);
+        wrapper.classList.add('trimwise-floating-fallback');
+        console.warn('[Trimwise] Using floating fallback for Show more button', { hidden, visible, total });
     }
 }
 
