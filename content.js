@@ -37,6 +37,36 @@
 
 'use strict';
 
+function getSyncStorage(key, callback) {
+    if (typeof browser !== 'undefined' && browser.storage?.sync) {
+        browser.storage.sync.get(key)
+            .then(callback)
+            .catch((error) => {
+                console.error('[Trimwise] Failed to load settings', error);
+                callback({});
+            });
+        return;
+    }
+
+    chrome.storage.sync.get(key, callback);
+}
+
+function sendRuntimeMessage(message) {
+    if (typeof browser !== 'undefined' && browser.runtime?.sendMessage) {
+        browser.runtime.sendMessage(message).catch((error) => {
+            console.error('[Trimwise] Failed to send runtime message', error);
+        });
+        return;
+    }
+
+    chrome.runtime.sendMessage(message, () => {
+        const runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+            console.error('[Trimwise] Failed to send runtime message', runtimeError);
+        }
+    });
+}
+
 // ============================================================================
 // STYLES INJECTION
 // ============================================================================
@@ -218,7 +248,7 @@ const LONG_MESSAGE_THRESHOLD = 600;      // Height in pixels to consider message
  * Runs once at startup, then triggers initial virtualization
  */
 function loadSettings() {
-    chrome.storage.sync.get('batchSize', (data) => {
+    getSyncStorage('batchSize', (data) => {
         if (data.batchSize) {
             BATCH_SIZE = parseInt(data.batchSize, 10);
             console.log('[Trimwise] Loaded batch size:', BATCH_SIZE);
@@ -979,7 +1009,7 @@ function injectSettingsButton() {
     
     // Open options page on click
     settingsBtn.onclick = () => {
-        chrome.runtime.sendMessage({ action: 'openOptions' });
+        sendRuntimeMessage({ action: 'openOptions' });
     };
     
     // Find the best place to insert (before the voice mode buttons)
