@@ -161,6 +161,20 @@ styleSheet.textContent = `
         height: 20px;
         fill: currentColor;
     }
+
+    /* Dark mode support for floating settings button */
+    @media (prefers-color-scheme: dark) {
+        .trimwise-settings-btn {
+            background: var(--main-surface-primary, #202123);
+            color: var(--text-secondary, #c5c5d2);
+            border-color: var(--border-light, #3c3c46);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+
+        .trimwise-settings-btn:hover {
+            opacity: 0.9;
+        }
+    }
     
     /* Collapsed message styles */
     .trimwise-collapsed {
@@ -1086,6 +1100,41 @@ function updateShowMoreButton(beforeIndex, hidden, total, visible) {
         document.body.appendChild(wrapper);
         wrapper.classList.add('trimwise-floating-fallback');
         console.warn('[Trimwise] Using floating fallback for Show more button', { hidden, visible, total });
+    }
+}
+
+function scheduleMutationProcessing() {
+    mutationChangesPending = true;
+
+    if (mutationWorkScheduled || !isTabVisible) {
+        return;
+    }
+
+    mutationWorkScheduled = true;
+
+    const run = () => {
+        mutationWorkScheduled = false;
+
+        // Skip when hidden; work will resume on visibility change
+        if (!isTabVisible || !mutationChangesPending || isProcessing) {
+            return;
+        }
+
+        mutationChangesPending = false;
+        updateVisibleRange();
+        reattachObserversIfNeeded();
+        scheduleMessageCollapse(firstVisibleIndex);
+
+        // Catch any changes that arrived while processing
+        if (mutationChangesPending) {
+            scheduleMutationProcessing();
+        }
+    };
+
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(run, { timeout: 180 });
+    } else {
+        setTimeout(run, 120);
     }
 }
 
