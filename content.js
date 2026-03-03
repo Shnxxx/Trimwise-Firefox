@@ -37,6 +37,36 @@
 
 'use strict';
 
+function getSyncStorage(key, callback) {
+    if (typeof browser !== 'undefined' && browser.storage?.sync) {
+        browser.storage.sync.get(key)
+            .then(callback)
+            .catch((error) => {
+                console.error('[Trimwise] Failed to load settings', error);
+                callback({});
+            });
+        return;
+    }
+
+    chrome.storage.sync.get(key, callback);
+}
+
+function sendRuntimeMessage(message) {
+    if (typeof browser !== 'undefined' && browser.runtime?.sendMessage) {
+        browser.runtime.sendMessage(message).catch((error) => {
+            console.error('[Trimwise] Failed to send runtime message', error);
+        });
+        return;
+    }
+
+    chrome.runtime.sendMessage(message, () => {
+        const runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+            console.error('[Trimwise] Failed to send runtime message', runtimeError);
+        }
+    });
+}
+
 // ============================================================================
 // STYLES INJECTION
 // ============================================================================
@@ -65,6 +95,17 @@ styleSheet.textContent = `
         /* High z-index to stay above ChatGPT content */
         position: relative;
         z-index: 10;
+    }
+
+    /* Fallback placement if inline insertion fails */
+    .trimwise-button-wrapper.trimwise-floating-fallback {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0;
+        z-index: 2147483646;
+        pointer-events: auto;
     }
     
     /* Styled to match ChatGPT's design language */
@@ -218,7 +259,7 @@ const LONG_MESSAGE_THRESHOLD = 600;      // Height in pixels to consider message
  * Runs once at startup, then triggers initial virtualization
  */
 function loadSettings() {
-    chrome.storage.sync.get('batchSize', (data) => {
+    getSyncStorage('batchSize', (data) => {
         if (data.batchSize) {
             BATCH_SIZE = parseInt(data.batchSize, 10);
             console.log('[Trimwise] Loaded batch size:', BATCH_SIZE);
@@ -837,8 +878,15 @@ function updateShowMoreButton(beforeIndex, hidden, total, visible) {
         
         if (needsMove) {
             targetElement.parentNode.insertBefore(wrapper, targetElement);
+            wrapper.classList.remove('trimwise-floating-fallback');
             lastButtonPosition = targetElement;
+            console.log('[Trimwise] Show more button mounted', { hidden, visible, total });
         }
+    } else if (hidden > 0) {
+        // Fallback for layouts where article parent isn't a stable insertion point
+        document.body.appendChild(wrapper);
+        wrapper.classList.add('trimwise-floating-fallback');
+        console.warn('[Trimwise] Using floating fallback for Show more button', { hidden, visible, total });
     }
 }
 
@@ -979,7 +1027,7 @@ function injectSettingsButton() {
     
     // Open options page on click
     settingsBtn.onclick = () => {
-        chrome.runtime.sendMessage({ action: 'openOptions' });
+        sendRuntimeMessage({ action: 'openOptions' });
     };
     
     // Find the best place to insert (before the voice mode buttons)
