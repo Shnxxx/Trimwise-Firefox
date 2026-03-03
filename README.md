@@ -36,6 +36,11 @@ A production-ready Chrome + Firefox extension that **dramatically improves** Cha
 - **Event-Driven Updates**: MutationObserver detects changes (vs polling every 3s)
 - **Change Detection**: Eliminates unnecessary DOM queries and updates
 - **Element Reuse**: Zero allocation churn for stable elements
+- **Background-tab aware**: Pauses heavy virtualization work when ChatGPT tab is hidden
+- **Adaptive frame-budgeted virtualization**: Queues DOM remove/restore operations with adaptive per-frame budgets to avoid long main-thread spikes at any conversation size
+- **Chunked idle collapse scanning**: Processes long-message collapse checks in idle/frame chunks to avoid blocking
+- **Idle-batched mutation processing**: Coalesces rapid DOM mutations and processes them during idle slices
+- **Bitwise queue flags**: Uses compact bit flags for queue membership checks to reduce redundant scheduling work
 - **CSS Classes**: Fast class toggling vs slow inline style writes
 
 ### User Experience
