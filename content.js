@@ -1089,41 +1089,6 @@ function updateShowMoreButton(beforeIndex, hidden, total, visible) {
     }
 }
 
-function scheduleMutationProcessing() {
-    mutationChangesPending = true;
-
-    if (mutationWorkScheduled || !isTabVisible) {
-        return;
-    }
-
-    mutationWorkScheduled = true;
-
-    const run = () => {
-        mutationWorkScheduled = false;
-
-        // Skip when hidden; work will resume on visibility change
-        if (!isTabVisible || !mutationChangesPending || isProcessing) {
-            return;
-        }
-
-        mutationChangesPending = false;
-        updateVisibleRange();
-        reattachObserversIfNeeded();
-        scheduleMessageCollapse(firstVisibleIndex);
-
-        // Catch any changes that arrived while processing
-        if (mutationChangesPending) {
-            scheduleMutationProcessing();
-        }
-    };
-
-    if (typeof requestIdleCallback === 'function') {
-        requestIdleCallback(run, { timeout: 180 });
-    } else {
-        setTimeout(run, 120);
-    }
-}
-
 // ============================================================================
 // MUTATION OBSERVER - DETECT NEW MESSAGES
 // ============================================================================
