@@ -3,6 +3,12 @@
   "name": "ChatGPT Lag Fixer – Auto-hide old messages in long chats",
   "version": "2.1",
   "description": "Dramatically improves performance in long ChatGPT conversations with virtual scrolling and auto-collapse of long messages",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "trimwise@garanovich.github",
+      "strict_min_version": "109.0"
+    }
+  },
   "permissions": ["storage"],
   "host_permissions": ["https://chatgpt.com/*"],
   "background": {
@@ -22,4 +28,3 @@
   },
   "options_page": "options.html"
 }
-

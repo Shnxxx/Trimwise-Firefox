@@ -1,6 +1,6 @@
 # ChatGPT Lag Fixer – True Virtual Scrolling for Long Chats
 
-A production-ready Chrome extension that **dramatically improves** ChatGPT performance in long conversations by implementing true virtual scrolling. Unlike simple hide/show solutions, Trimwise v2.1 completely removes offscreen messages from the DOM, reducing memory usage by 70-90% and eliminating lag.
+A production-ready browser extension that **dramatically improves** ChatGPT performance in long conversations by implementing true virtual scrolling. Unlike simple hide/show solutions, Trimwise v2.1 completely removes offscreen messages from the DOM, reducing memory usage by 70-90% and eliminating lag.
 
 ## ✨ What's New in v2.1
 
@@ -67,15 +67,19 @@ Long ChatGPT conversations (100+ messages) cause severe performance issues:
 
 ## 🧑‍💻 Install
 
-### Option 1: Chrome Web Store (Recommended - Coming Soon)
-*Extension will be available on Chrome Web Store after review*
+### Option 1: Firefox (Load Temporary Add-on)
+1. Open Firefox and go to `about:debugging#/runtime/this-firefox`
+2. Click **Load Temporary Add-on**
+3. Select `manifest.json` from this project
+4. Open `https://chatgpt.com/` and test on a long conversation
 
-### Option 2: Load Unpacked (Developer Mode)
+### Option 2: Chrome / Chromium (Load Unpacked)
+
 1. **Clone or download** this repository
    ```bash
    git clone https://github.com/garanovich/Trimwise.git
    ```
-2. **Open Chrome** and navigate to `chrome://extensions/`
+2. **Open Chrome/Chromium** and navigate to `chrome://extensions/`
 3. **Enable "Developer mode"** (toggle in top right)
 4. **Click "Load unpacked"**
 5. **Select the Trimwise folder**
