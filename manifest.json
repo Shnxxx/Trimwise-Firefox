@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Lag Fixer – Auto-hide old messages in long chats",
-  "version": "2.1",
-  "description": "Dramatically improves performance in long ChatGPT conversations with virtual scrolling and auto-collapse of long messages",
+  "name": "Trimwise Forfoxxx",
+  "version": "2.1.10",
+  "description": "Improves performance in long ChatGPT conversations with virtual scrolling, adaptive queueing, and message collapse",
   "permissions": [
     "storage"
   ],
@@ -36,7 +36,7 @@
   "options_page": "options.html",
   "browser_specific_settings": {
     "gecko": {
-      "id": "trimwise@trimwise.app",
+      "id": "shnxxx@trimwise.firefox",
       "strict_min_version": "121.0"
     }
   }
