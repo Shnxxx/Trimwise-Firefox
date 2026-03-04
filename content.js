@@ -37,6 +37,36 @@
 
 'use strict';
 
+function getSyncStorage(key, callback) {
+    if (typeof browser !== 'undefined' && browser.storage?.sync) {
+        browser.storage.sync.get(key)
+            .then(callback)
+            .catch((error) => {
+                console.error('[Trimwise] Failed to load settings', error);
+                callback({});
+            });
+        return;
+    }
+
+    chrome.storage.sync.get(key, callback);
+}
+
+function sendRuntimeMessage(message) {
+    if (typeof browser !== 'undefined' && browser.runtime?.sendMessage) {
+        browser.runtime.sendMessage(message).catch((error) => {
+            console.error('[Trimwise] Failed to send runtime message', error);
+        });
+        return;
+    }
+
+    chrome.runtime.sendMessage(message, () => {
+        const runtimeError = chrome.runtime.lastError;
+        if (runtimeError) {
+            console.error('[Trimwise] Failed to send runtime message', runtimeError);
+        }
+    });
+}
+
 // ============================================================================
 // STYLES INJECTION
 // ============================================================================
@@ -66,6 +96,17 @@ styleSheet.textContent = `
         position: relative;
         z-index: 10;
     }
+
+    /* Fallback placement if inline insertion fails */
+    .trimwise-button-wrapper.trimwise-floating-fallback {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        margin: 0;
+        z-index: 2147483646;
+        pointer-events: auto;
+    }
     
     /* Styled to match ChatGPT's design language */
     .trimwise-button {
@@ -92,20 +133,23 @@ styleSheet.textContent = `
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
     
-    /* Settings button in composer */
+    /* Settings button rendered outside React tree (avoids hydration errors) */
     .trimwise-settings-btn {
-        position: relative;
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 36px;
-        height: 36px;
+        width: 38px;
+        height: 38px;
         border-radius: 50%;
-        border: none;
-        background: transparent;
-        color: var(--text-secondary);
+        border: 1px solid var(--border-light, #e5e5e5);
+        background: var(--main-surface-primary, #fff);
+        color: var(--text-secondary, #6e6e80);
         cursor: pointer;
         transition: opacity 0.2s ease;
+        z-index: 2147483645;
     }
     
     .trimwise-settings-btn:hover {
@@ -116,6 +160,38 @@ styleSheet.textContent = `
         width: 20px;
         height: 20px;
         fill: currentColor;
+    }
+
+    /* Dark mode support for floating settings button */
+    @media (prefers-color-scheme: dark) {
+        .trimwise-settings-btn {
+            background: #202123;
+            color: #c5c5d2;
+            border-color: #3c3c46;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+
+        .trimwise-settings-btn:hover {
+            opacity: 0.9;
+        }
+    }
+
+    /* Explicit ChatGPT dark-theme selectors (in case media query does not match) */
+    html.dark .trimwise-settings-btn,
+    html[data-theme="dark"] .trimwise-settings-btn,
+    body.dark .trimwise-settings-btn,
+    body[data-theme="dark"] .trimwise-settings-btn {
+        background: #202123 !important;
+        color: #c5c5d2 !important;
+        border-color: #3c3c46 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    html.dark .trimwise-settings-btn:hover,
+    html[data-theme="dark"] .trimwise-settings-btn:hover,
+    body.dark .trimwise-settings-btn:hover,
+    body[data-theme="dark"] .trimwise-settings-btn:hover {
+        opacity: 0.9;
     }
     
     /* Collapsed message styles */
@@ -200,10 +276,33 @@ let messageObserver = null;              // Watches messages to virtualize when 
 let isProcessing = false;                // Prevents concurrent virtualization runs
 let pendingVirtualization = false;       // Flags that virtualization should run after current completes
 let initialStabilizationComplete = false; // Prevents virtualization during initial page load
+let isTabVisible = !document.hidden;     // Skip heavy work when tab is backgrounded
 
 // Virtualization metrics for debugging
 let virtualizedCount = 0;                // Total messages virtualized
 let restoredCount = 0;                   // Total messages restored
+
+// Frame-budgeted operation queues (prevents long tasks on huge conversations)
+const pendingVirtualize = new Set();     // Articles queued for virtualization
+const pendingRestore = new Set();        // Placeholders queued for restoration
+const nodeQueueFlags = new WeakMap();    // Bitwise flags for queue membership
+const QUEUE_FLAG_VIRTUALIZE = 1 << 0;    // Node is queued for virtualization
+const QUEUE_FLAG_RESTORE = 1 << 1;       // Node is queued for restoration
+let queueFlushScheduled = false;         // Whether a flush is already scheduled
+let mutationWorkScheduled = false;       // Debounced/idle mutation processing scheduled
+let mutationChangesPending = false;      // MutationObserver has relevant pending changes
+const BASE_FRAME_BUDGET_MS = 4;          // Base main-thread budget per frame
+const MAX_FRAME_BUDGET_MS = 10;          // Max budget during heavy queue pressure
+const BASE_OPS_PER_FRAME = 8;            // Base operation cap per frame
+const MAX_OPS_PER_FRAME = 24;            // Max operation cap during heavy queue pressure
+
+// Debounced collapse processing (prevents repeated full scans during rapid updates)
+let collapseProcessTimer = null;         // Timer ID for deferred collapse processing
+let collapseScanIndex = 0;               // Current index for chunked collapse scan
+let collapseScanInProgress = false;      // Prevent concurrent collapse scans
+let collapseScanStartIndex = Number.MAX_SAFE_INTEGER; // Earliest index pending scan
+const COLLAPSE_SCAN_CHUNK = 20;          // Articles processed per idle/frame chunk
+const collapseHeightCache = new WeakMap(); // Cached message height measurements
 
 // Message collapse state tracking
 const collapsedMessages = new WeakSet(); // Track which messages are collapsed
@@ -218,7 +317,7 @@ const LONG_MESSAGE_THRESHOLD = 600;      // Height in pixels to consider message
  * Runs once at startup, then triggers initial virtualization
  */
 function loadSettings() {
-    chrome.storage.sync.get('batchSize', (data) => {
+    getSyncStorage('batchSize', (data) => {
         if (data.batchSize) {
             BATCH_SIZE = parseInt(data.batchSize, 10);
             console.log('[Trimwise] Loaded batch size:', BATCH_SIZE);
@@ -328,7 +427,7 @@ function updateArticleList() {
  * Main orchestrator - determines what should be visible and triggers virtualization
  * Called by MutationObserver when DOM changes, or by "Show more" button clicks
  */
-function updateVisibleRange() {
+function updateVisibleRange(force = false) {
     // Prevent concurrent execution
     if (isProcessing) {
         pendingVirtualization = true;
@@ -336,6 +435,12 @@ function updateVisibleRange() {
     }
     
     isProcessing = true;
+
+    // Avoid expensive DOM work in background tabs unless explicitly forced
+    if (!force && !isTabVisible) {
+        isProcessing = false;
+        return;
+    }
     
     try {
         // Update article list and check for changes
@@ -369,8 +474,8 @@ function updateVisibleRange() {
         updateShowMoreButton(firstVisibleIndex, hiddenCount, total, visibleCount);
         
         // Process message collapse after visibility is set
-        // Delayed slightly to ensure accurate height measurements
-        setTimeout(processMessageCollapse, 50);
+        // Debounced to reduce repeated scans during rapid updates
+        scheduleMessageCollapse(firstVisibleIndex);
         
         // Update cache
         lastArticleCount = total;
@@ -394,17 +499,39 @@ function updateVisibleRange() {
  * @param {number} firstVisibleIndex - Start of visible range
  */
 function applyVisibilityRules(firstVisibleIndex) {
-    allArticles.forEach((article, index) => {
-        const shouldBeVisible = (index >= firstVisibleIndex);
-        const isHidden = article.classList.contains('trimwise-hidden');
-        
-        // Only toggle class if state needs to change
-        if (shouldBeVisible && isHidden) {
-            article.classList.remove('trimwise-hidden');
-        } else if (!shouldBeVisible && !isHidden) {
-            article.classList.add('trimwise-hidden');
+    // First run or large shift: full pass
+    if (lastFirstVisibleIndex < 0 || Math.abs(firstVisibleIndex - lastFirstVisibleIndex) > 100) {
+        allArticles.forEach((article, index) => {
+            const shouldBeVisible = (index >= firstVisibleIndex);
+            const isHidden = article.classList.contains('trimwise-hidden');
+
+            if (shouldBeVisible && isHidden) {
+                article.classList.remove('trimwise-hidden');
+            } else if (!shouldBeVisible && !isHidden) {
+                article.classList.add('trimwise-hidden');
+            }
+        });
+        return;
+    }
+
+    // Incremental update for small range changes
+    if (firstVisibleIndex > lastFirstVisibleIndex) {
+        // More messages hidden at the top
+        for (let i = lastFirstVisibleIndex; i < firstVisibleIndex; i++) {
+            const article = allArticles[i];
+            if (article && !article.classList.contains('trimwise-hidden')) {
+                article.classList.add('trimwise-hidden');
+            }
         }
-    });
+    } else if (firstVisibleIndex < lastFirstVisibleIndex) {
+        // More messages revealed at the top
+        for (let i = firstVisibleIndex; i < lastFirstVisibleIndex; i++) {
+            const article = allArticles[i];
+            if (article && article.classList.contains('trimwise-hidden')) {
+                article.classList.remove('trimwise-hidden');
+            }
+        }
+    }
 }
 
 // ============================================================================
@@ -447,6 +574,110 @@ function manageVirtualization() {
     });
 }
 
+function getQueueFlags(node) {
+    return nodeQueueFlags.get(node) || 0;
+}
+
+function hasQueueFlag(node, flag) {
+    return (getQueueFlags(node) & flag) !== 0;
+}
+
+function setQueueFlag(node, flag) {
+    nodeQueueFlags.set(node, getQueueFlags(node) | flag);
+}
+
+function clearQueueFlag(node, flag) {
+    const nextFlags = getQueueFlags(node) & ~flag;
+    if (nextFlags === 0) {
+        nodeQueueFlags.delete(node);
+    } else {
+        nodeQueueFlags.set(node, nextFlags);
+    }
+}
+
+function getAdaptiveQueueBudget() {
+    const pendingTotal = pendingRestore.size + pendingVirtualize.size;
+
+    // Apply optimization at all sizes; scale up only when pressure increases
+    const pressureRatio = Math.min(pendingTotal / 200, 1);
+    const frameBudgetMs = BASE_FRAME_BUDGET_MS + ((MAX_FRAME_BUDGET_MS - BASE_FRAME_BUDGET_MS) * pressureRatio);
+    const maxOps = Math.round(BASE_OPS_PER_FRAME + ((MAX_OPS_PER_FRAME - BASE_OPS_PER_FRAME) * pressureRatio));
+
+    return { frameBudgetMs, maxOps };
+}
+
+function scheduleQueueFlush() {
+    if (queueFlushScheduled) {
+        return;
+    }
+
+    queueFlushScheduled = true;
+    requestAnimationFrame(() => {
+        queueFlushScheduled = false;
+        flushOperationQueues();
+    });
+}
+
+function flushOperationQueues() {
+    let ops = 0;
+    const start = performance.now();
+    const { frameBudgetMs, maxOps } = getAdaptiveQueueBudget();
+
+    const hasBudget = () => (ops < maxOps) && ((performance.now() - start) < frameBudgetMs);
+
+    // Prioritize restore operations for UX smoothness
+    while (pendingRestore.size > 0 && hasBudget()) {
+        const iterator = pendingRestore.values().next();
+        const placeholder = iterator.value;
+        pendingRestore.delete(placeholder);
+        clearQueueFlag(placeholder, QUEUE_FLAG_RESTORE);
+
+        if (placeholder?.isConnected) {
+            restoreMessage(placeholder);
+        }
+        ops++;
+    }
+
+    while (pendingVirtualize.size > 0 && hasBudget()) {
+        const iterator = pendingVirtualize.values().next();
+        const article = iterator.value;
+        pendingVirtualize.delete(article);
+        clearQueueFlag(article, QUEUE_FLAG_VIRTUALIZE);
+
+        if (article?.isConnected) {
+            virtualizeMessage(article);
+        }
+        ops++;
+    }
+
+    if (pendingRestore.size > 0 || pendingVirtualize.size > 0) {
+        scheduleQueueFlush();
+    }
+}
+
+function queueVirtualizeMessage(article) {
+    if (!article || hasQueueFlag(article, QUEUE_FLAG_VIRTUALIZE)) {
+        return;
+    }
+
+    pendingVirtualize.add(article);
+    setQueueFlag(article, QUEUE_FLAG_VIRTUALIZE);
+    scheduleQueueFlush();
+}
+
+function queueRestoreMessage(placeholder) {
+    if (!placeholder || hasQueueFlag(placeholder, QUEUE_FLAG_RESTORE)) {
+        return;
+    }
+
+    pendingVirtualize.delete(placeholder);
+    clearQueueFlag(placeholder, QUEUE_FLAG_VIRTUALIZE);
+
+    pendingRestore.add(placeholder);
+    setQueueFlag(placeholder, QUEUE_FLAG_RESTORE);
+    scheduleQueueFlush();
+}
+
 /**
  * Initialize IntersectionObserver instances
  * Two observers with different thresholds for smooth virtualization
@@ -463,8 +694,7 @@ function initializeObservers() {
             entries.forEach((entry) => {
                 // Message has left the buffer zone - virtualize it
                 if (!entry.isIntersecting && !entry.target.classList.contains('trimwise-hidden')) {
-                    // Add small delay to avoid rapid virtualization during scroll
-                    setTimeout(() => virtualizeMessage(entry.target), 100);
+                    queueVirtualizeMessage(entry.target);
                 }
             });
         },
@@ -482,7 +712,7 @@ function initializeObservers() {
             entries.forEach((entry) => {
                 // Placeholder entering buffer zone - restore the message
                 if (entry.isIntersecting) {
-                    restoreMessage(entry.target);
+                    queueRestoreMessage(entry.target);
                 }
             });
         },
@@ -639,19 +869,28 @@ function isMessageLong(article) {
     if (collapsedMessages.has(article)) {
         return false;
     }
-    
+
     // Find the content container within the article
     // ChatGPT user messages typically have a data-message-author-role="user" attribute
     const isUserMessage = article.querySelector('[data-message-author-role="user"]');
-    
+
     // Only collapse user messages (not assistant responses)
     if (!isUserMessage) {
         return false;
     }
-    
-    // Get the actual content height
+
+    const width = article.offsetWidth;
+    const now = performance.now();
+    const cached = collapseHeightCache.get(article);
+
+    if (cached && cached.width === width && (now - cached.measuredAt) < 2000) {
+        return cached.height > LONG_MESSAGE_THRESHOLD;
+    }
+
+    // Get the actual content height (layout read)
     const height = article.offsetHeight;
-    
+    collapseHeightCache.set(article, { height, width, measuredAt: now });
+
     return height > LONG_MESSAGE_THRESHOLD;
 }
 
@@ -754,19 +993,52 @@ function collapseMessage(article) {
 /**
  * Process all visible messages and collapse long ones
  */
+function scheduleMessageCollapse(startIndex = 0) {
+    const pendingStart = Math.max(0, startIndex);
+    collapseScanStartIndex = Math.min(collapseScanStartIndex, pendingStart);
+
+    if (collapseScanInProgress) {
+        return;
+    }
+
+    clearTimeout(collapseProcessTimer);
+    collapseProcessTimer = setTimeout(() => {
+        collapseScanInProgress = true;
+        collapseScanIndex = Number.isFinite(collapseScanStartIndex) ? collapseScanStartIndex : pendingStart;
+        processMessageCollapse();
+    }, 80);
+}
+
 function processMessageCollapse() {
-    allArticles.forEach((article) => {
+    const end = Math.min(collapseScanIndex + COLLAPSE_SCAN_CHUNK, allArticles.length);
+
+    for (let i = collapseScanIndex; i < end; i++) {
+        const article = allArticles[i];
+
         // Skip hidden and virtualized messages
-        if (article.classList.contains('trimwise-hidden') || 
+        if (article.classList.contains('trimwise-hidden') ||
             article.classList.contains('trimwise-placeholder')) {
-            return;
+            continue;
         }
-        
-        // Check if message should be collapsed
+
         if (isMessageLong(article)) {
             collapseMessage(article);
         }
-    });
+    }
+
+    collapseScanIndex = end;
+
+    if (collapseScanIndex < allArticles.length) {
+        if (typeof requestIdleCallback === 'function') {
+            requestIdleCallback(() => processMessageCollapse(), { timeout: 120 });
+        } else {
+            requestAnimationFrame(() => processMessageCollapse());
+        }
+        return;
+    }
+
+    collapseScanInProgress = false;
+    collapseScanStartIndex = Number.MAX_SAFE_INTEGER;
 }
 
 // ============================================================================
@@ -837,8 +1109,50 @@ function updateShowMoreButton(beforeIndex, hidden, total, visible) {
         
         if (needsMove) {
             targetElement.parentNode.insertBefore(wrapper, targetElement);
+            wrapper.classList.remove('trimwise-floating-fallback');
             lastButtonPosition = targetElement;
+            console.log('[Trimwise] Show more button mounted', { hidden, visible, total });
         }
+    } else if (hidden > 0) {
+        // Fallback for layouts where article parent isn't a stable insertion point
+        document.body.appendChild(wrapper);
+        wrapper.classList.add('trimwise-floating-fallback');
+        console.warn('[Trimwise] Using floating fallback for Show more button', { hidden, visible, total });
+    }
+}
+
+function scheduleMutationProcessing() {
+    mutationChangesPending = true;
+
+    if (mutationWorkScheduled || !isTabVisible) {
+        return;
+    }
+
+    mutationWorkScheduled = true;
+
+    const run = () => {
+        mutationWorkScheduled = false;
+
+        // Skip when hidden; work will resume on visibility change
+        if (!isTabVisible || !mutationChangesPending || isProcessing) {
+            return;
+        }
+
+        mutationChangesPending = false;
+        updateVisibleRange();
+        reattachObserversIfNeeded();
+        scheduleMessageCollapse(firstVisibleIndex);
+
+        // Catch any changes that arrived while processing
+        if (mutationChangesPending) {
+            scheduleMutationProcessing();
+        }
+    };
+
+    if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(run, { timeout: 180 });
+    } else {
+        setTimeout(run, 120);
     }
 }
 
@@ -882,18 +1196,7 @@ const mutationObserver = new MutationObserver((mutations) => {
     
     // Trigger virtualization if conversation changed
     if (hasRelevantChanges) {
-        // Debounce to batch rapid changes (e.g., streaming responses, virtualization)
-        clearTimeout(mutationObserver._debounceTimer);
-        mutationObserver._debounceTimer = setTimeout(() => {
-            // Only process if not currently virtualizing/restoring
-            if (!isProcessing) {
-                updateVisibleRange();
-                // Re-attach observers to any messages that might have been replaced
-                reattachObserversIfNeeded();
-                // Process collapse for any new messages (with extra delay for rendering)
-                setTimeout(processMessageCollapse, 100);
-            }
-        }, 200); // Longer debounce to prevent glitching during scroll
+        scheduleMutationProcessing();
     }
 });
 
@@ -946,49 +1249,55 @@ function startObserving() {
 // ============================================================================
 
 /**
- * Inject settings button next to the composer
- * Allows quick access to extension options
+ * Inject floating settings button outside ChatGPT React tree
+ * Keeps extension UI isolated and prevents React hydration mismatches
  */
 function injectSettingsButton() {
     // Check if button already exists
     if (document.querySelector('.trimwise-settings-btn')) {
         return;
     }
-    
-    // Find the trailing area in composer (where voice buttons are)
-    const trailingArea = document.querySelector('[class*="grid-area:trailing"]');
-    
-    if (!trailingArea) {
-        // Composer not found yet, retry later
-        setTimeout(injectSettingsButton, 1000);
-        return;
-    }
-    
+
     // Create settings button
     const settingsBtn = document.createElement('button');
     settingsBtn.className = 'trimwise-settings-btn';
     settingsBtn.setAttribute('aria-label', 'Trimwise settings');
     settingsBtn.setAttribute('title', 'Trimwise settings - Configure visible messages');
-    
+
     // Settings icon (gear/cog)
     settingsBtn.innerHTML = `
         <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
             <path d="M10.707 1.5a1.25 1.25 0 0 0-1.414 0l-1.015 1.015a.75.75 0 0 1-.53.22H6.5a1.25 1.25 0 0 0-1.25 1.25v1.248a.75.75 0 0 1-.22.53L4.015 6.78a1.25 1.25 0 0 0 0 1.414l1.015 1.015a.75.75 0 0 1 .22.53V11a1.25 1.25 0 0 0 1.25 1.25h1.248a.75.75 0 0 1 .53.22l1.015 1.015a1.25 1.25 0 0 0 1.414 0l1.015-1.015a.75.75 0 0 1 .53-.22h1.248A1.25 1.25 0 0 0 14.75 11V9.739a.75.75 0 0 1 .22-.53l1.015-1.015a1.25 1.25 0 0 0 0-1.414l-1.015-1.015a.75.75 0 0 1-.22-.53V3.985a1.25 1.25 0 0 0-1.25-1.25h-1.248a.75.75 0 0 1-.53-.22L10.707 1.5zM10 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"/>
         </svg>
     `;
-    
+
     // Open options page on click
     settingsBtn.onclick = () => {
-        chrome.runtime.sendMessage({ action: 'openOptions' });
+        const isDarkTheme = document.documentElement.classList.contains('dark') ||
+            document.documentElement.getAttribute('data-theme') === 'dark' ||
+            document.body?.classList.contains('dark') ||
+            document.body?.getAttribute('data-theme') === 'dark' ||
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        sendRuntimeMessage({
+            action: 'openOptions',
+            theme: isDarkTheme ? 'dark' : 'light'
+        });
     };
-    
-    // Find the best place to insert (before the voice mode buttons)
-    const itemsContainer = trailingArea.querySelector('.flex.items-center.gap-1\\.5, .flex.items-center');
-    
-    if (itemsContainer) {
-        // Insert at the beginning of the container
-        itemsContainer.insertBefore(settingsBtn, itemsContainer.firstChild);
-        console.log('[Trimwise] Settings button injected');
+
+    document.body.appendChild(settingsBtn);
+    console.log('[Trimwise] Settings button injected (floating mode)');
+}
+
+function handleVisibilityChange() {
+    isTabVisible = !document.hidden;
+
+    if (isTabVisible) {
+        // Catch up on any pending DOM changes when tab becomes active
+        updateVisibleRange(true);
+        if (mutationChangesPending) {
+            scheduleMutationProcessing();
+        }
     }
 }
 
@@ -1000,6 +1309,11 @@ function injectSettingsButton() {
  * Initialize extension when DOM is ready
  */
 function initialize() {
+    if (window.__trimwiseInitialized) {
+        return;
+    }
+    window.__trimwiseInitialized = true;
+
     console.log('[Trimwise] Initializing v2.1 with virtual scrolling + message collapse');
     
     // Load user settings (triggers initial virtualization)
@@ -1007,8 +1321,11 @@ function initialize() {
     
     // Start watching for new messages
     startObserving();
+
+    // Pause heavy work in background tabs
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Inject settings button in composer
+    // Inject floating settings button
     setTimeout(injectSettingsButton, 2000); // Wait for composer to render
 }
 
@@ -1032,6 +1349,8 @@ window.addEventListener('beforeunload', () => {
     if (mutationObserver) {
         mutationObserver.disconnect();
     }
+
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
     if (messageObserver) {
         messageObserver.disconnect();
     }

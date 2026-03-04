@@ -1,227 +1,153 @@
-# ChatGPT Lag Fixer – True Virtual Scrolling for Long Chats
+# Trimwise Firefox Fork
 
-A production-ready Chrome extension that **dramatically improves** ChatGPT performance in long conversations by implementing true virtual scrolling. Unlike simple hide/show solutions, Trimwise v2.1 completely removes offscreen messages from the DOM, reducing memory usage by 70-90% and eliminating lag.
+A Firefox-focused, cross-browser fork of Trimwise for making long ChatGPT conversations significantly smoother.
 
-## ✨ What's New in v2.1
+## Maintainer + Lineage
 
-**📦 Smart Message Collapsing** - Long messages now collapse automatically:
-- **Long user messages auto-collapse** by default (like Gemini)
-- **Expand/Collapse buttons** for easy toggling
-- **Reduces page weight** and improves scroll performance
-- **Works seamlessly** with virtual scrolling
+- **Maintainer / Author:** **Shnxxx**
+- **Original creator:** **Garanovich**
+- **Fork source in this maintenance line:** **icedmoca**
 
-## ✨ What's New in v2.0
-
-**🚀 True Performance Gains** - Not just hiding, actually removing messages from memory:
-- **70-90% memory reduction** in 500+ message conversations
-- **95% CPU reduction** during idle (no more polling)
-- **Instant response** to new messages (was 3-second delay)
-- **Smooth scrolling** with zero position jumping
-
-## 🔧 Features
-
-### Message Collapse System (NEW in v2.1)
-- **Auto-Collapse Long Messages**: User messages over 600px height collapse automatically
-- **Expand/Collapse Button**: Toggle between collapsed/expanded states
-- **Smooth Animations**: Fade gradient at bottom when collapsed
-- **Preserved Across Scrolling**: Collapse state maintained during virtualization
-
-### Virtual Scrolling Engine
-- **Smart DOM Management**: Offscreen messages completely removed from DOM
-- **Height Placeholders**: Maintains exact scroll position (no jumping)
-- **Seamless Restoration**: Messages reload before becoming visible (1200px buffer)
-- **Browser-Native**: Uses IntersectionObserver for optimal performance
-
-### Performance Optimizations
-- **Event-Driven Updates**: MutationObserver detects changes (vs polling every 3s)
-- **Change Detection**: Eliminates unnecessary DOM queries and updates
-- **Element Reuse**: Zero allocation churn for stable elements
-- **CSS Classes**: Fast class toggling vs slow inline style writes
-
-### User Experience
-- **Configurable Batch Size**: Show 5-100 messages at a time (settings page)
-- **"Show More" Control**: Expand visible range with one click
-- **Visual Polish**: Smooth button animations matching ChatGPT's design
-- **Backward Compatible**: All v1.x settings preserved
-
-## 📊 Performance Comparison
-
-| Metric | v1.1 (Hide) | v2.0 (Virtual) | Improvement |
-|--------|-------------|----------------|-------------|
-| Memory (500 msgs) | 100% in DOM | ~20% in DOM | **80% reduction** |
-| CPU (idle) | 8.3ms/sec | 0.4ms/sec | **95% reduction** |
-| New message delay | 0-3 seconds | Instant | **Instant** |
-| DOM operations | 200+/cycle | Changed only | **90% reduction** |
-
-## 💡 Why?
-
-Long ChatGPT conversations (100+ messages) cause severe performance issues:
-- Browser lag and freezing
-- High memory usage (1GB+ for 500 messages)
-- Slow scrolling
-- React reconciliation overhead
-
-**Previous solutions** (including v1.1) only hid messages with `display: none` – they stayed in memory and React's virtual DOM, providing minimal improvement.
-
-**Trimwise v2.0** actually removes messages from the DOM and restores them on-demand, delivering real performance gains.
-
-## 🧑‍💻 Install
-
-### Option 1: Chrome Web Store (Recommended - Coming Soon)
-*Extension will be available on Chrome Web Store after review*
-
-### Option 2: Load Unpacked (Developer Mode)
-1. **Clone or download** this repository
-   ```bash
-   git clone https://github.com/garanovich/Trimwise.git
-   ```
-2. **Open Chrome** and navigate to `chrome://extensions/`
-3. **Enable "Developer mode"** (toggle in top right)
-4. **Click "Load unpacked"**
-5. **Select the Trimwise folder**
-6. **Done!** Extension will appear in your toolbar
-
-### Configuration
-1. **Click the extension icon** or right-click → Options
-2. **Adjust message count** (5-100, default 20)
-3. **Save settings**
-4. **Reload ChatGPT tab** to apply
-
-## 📖 Documentation
-
-- **[CHANGELOG.md](./CHANGELOG.md)** - Version history and release notes
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Technical deep-dive, maintenance guide
-- **[privacy.html](./privacy.html)** - Privacy policy (no data collection)
-
-## 🎯 How It Works
-
-### The Problem
-ChatGPT keeps all messages in the DOM as you chat. A 500-message conversation can have:
-- 10,000+ DOM nodes
-- 500 React components in memory
-- Syntax highlighted code blocks fully parsed
-- All images decoded and cached
-
-### The Solution - Virtual Scrolling
-
-```
-┌─────────────────────────────────────┐
-│  Placeholders (virtualized)         │  ← Not in DOM
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│  Buffer Zone (1200px)               │
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│  Real Messages                      │  ← In DOM
-│  ══════════════════════════════════ │
-│  VIEWPORT (visible)                 │  ← What you see
-│  ══════════════════════════════════ │
-│  Real Messages                      │  ← In DOM
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│  Buffer Zone (1200px)               │
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│  Placeholders (virtualized)         │  ← Not in DOM
-└─────────────────────────────────────┘
-```
-
-**Key Concepts**:
-1. **Remove** messages far from viewport
-2. **Replace** with height-preserving placeholders (no scroll jump)
-3. **Restore** seamlessly when scrolling brings them back
-4. **Buffer zones** ensure smooth restoration before visible
-
-## 🔧 Technical Highlights
-
-- **No React internals**: Pure DOM manipulation, works with any ChatGPT update
-- **Chrome MV3 compliant**: Production-ready extension manifest
-- **Memory safe**: Proper cleanup prevents leaks
-- **Zero dependencies**: Vanilla JavaScript, no libraries
-- **Well documented**: 600+ lines of inline comments
-
-## 🐛 Known Limitations
-
-1. **React vDOM overhead**: React still tracks all messages (~20-30% overhead remains)
-2. **Event listeners**: Cached messages keep listeners (good: preserved functionality, bad: not fully freed)
-3. **ChatGPT updates**: Selector changes require maintenance (trade-off for stability)
-
-These are architectural limitations that can only be solved by hooking into React internals (fragile) or intercepting ChatGPT's API (complex).
-
-## 🤝 Contributing
-
-Contributions are welcome! Areas for improvement:
-
-- **Adaptive buffer sizing** based on scroll velocity
-- **Predictive loading** in scroll direction only
-- **IndexedDB caching** for true memory freedom
-- **Service worker** integration for API-level pagination
-- **Tests** for virtualization logic
-- **Performance monitoring** dashboard
-
-### Development Setup
-```bash
-# Clone repo
-git clone https://github.com/garanovich/Trimwise.git
-cd Trimwise
-
-# Make changes to content.js
-
-# Load unpacked in Chrome
-# chrome://extensions/ → Load unpacked → Select Trimwise folder
-
-# Test on ChatGPT
-# Open long conversation (100+ messages)
-# Monitor: DevTools → Performance → Memory
-```
-
-### Testing Checklist
-- [ ] Messages virtualize when scrolling away
-- [ ] Messages restore when scrolling back
-- [ ] Scroll position never jumps
-- [ ] "Show more" button works correctly
-- [ ] Settings persist across reloads
-- [ ] No console errors
-- [ ] Memory usage reduced (DevTools → Memory)
-
-## ☕ Support Development
-
-If this extension saves your sanity in long ChatGPT sessions:
-
-- ⭐ **Star this repo** on GitHub
-- ☕ **Buy me a coffee**: [Ko-Fi](https://ko-fi.com/rentanek0)
-- 🐛 **Report bugs**: [GitHub Issues](https://github.com/garanovich/Trimwise/issues)
-- 💡 **Suggest features**: [GitHub Discussions](https://github.com/garanovich/Trimwise/discussions)
-
-## 📜 License
-
-MIT License - see [LICENSE](./LICENSE) file for details
+For detailed authorship notes, see [CREDITS.md](./CREDITS.md).
 
 ---
 
-## 📌 Version History
+## Current Fork Version
 
-### v2.1 (2025-10-30) - Message Collapse
-- Auto-collapse long user messages (600px+ height)
-- Expand/Collapse buttons with smooth animations
-- Reduces page weight and improves scroll performance
-- Integrates seamlessly with virtual scrolling system
-- Collapse state preserved during message restoration
+**`v2.1-firefox.10`**
 
-### v2.0 (2025-10-30) - Virtual Scrolling
-- Complete rewrite with true virtual scrolling
-- 70-90% memory reduction (removes messages from DOM)
-- 95% CPU reduction (MutationObserver vs polling)
-- IntersectionObserver for seamless restoration
-- Production-ready with extensive documentation
-
-### v1.1 (Previous)
-- Dynamic message display with settings
-- "Show more" button improvements
-- Visual enhancements
-
-### v1.0 (Initial)
-- Basic hide/show with `display: none`
-- Fixed batch size (50 messages)
+This version includes all previous fork optimizations plus settings-window theme sync (floating button opens options with dark mode when ChatGPT is dark).
 
 ---
 
-**Made with ❤️ for the ChatGPT community**
+## What This Fork Improves
 
-*Having issues? Check [ARCHITECTURE.md](./ARCHITECTURE.md) for troubleshooting or [open an issue](https://github.com/garanovich/Trimwise/issues).*
+### 1) Cross-Browser Runtime Stability
+- Firefox + Chrome compatible runtime/storage behavior.
+- Gecko metadata and compatibility fields in manifest.
+- Firefox-safe install flow and troubleshooting docs.
+
+### 2) Performance in Long Conversations
+- Virtualization with height-preserving placeholders.
+- Adaptive frame-budget operation queue.
+- Idle-batched mutation processing.
+- Chunked long-message collapse scanning.
+- Queue-state bitwise flags for lower scheduling overhead.
+- Background-tab deferral to avoid wasted CPU cycles.
+
+### 3) UI Robustness
+- Floating settings button outside ChatGPT React tree.
+- Show-more fallback placement when inline insertion is unstable.
+- Dark-mode styling support for floating settings button.
+
+---
+
+## Performance Comparison (Theoretical)
+
+> These are directional/engineering estimates, not lab-certified benchmarks.
+
+| Scenario | Baseline (no virtualization) | Fork (v2.1-firefox.10) | Expected effect |
+|---|---:|---:|---|
+| DOM nodes in long chat | Very high (grows with full history) | Bounded around active range + placeholders | Lower layout/repaint cost |
+| Mutation burst handling | Immediate repeated processing | Idle-batched/coalesced processing | Fewer main-thread spikes |
+| Virtualize/restore burst | Unbounded same-frame churn | Adaptive frame-budget queue | Better scroll smoothness |
+| Collapse scanning | Full-ish repeated scanning | Chunked idle scanning + height cache | Reduced blocking |
+| Hidden-tab workload | Still processes heavy updates | Heavy work deferred while hidden | Lower background CPU |
+| Queue churn | Duplicate enqueue opportunities | Bitwise queue-state flags | Less redundant scheduling |
+
+---
+
+## Installation
+
+### Firefox (Recommended for this fork)
+1. Go to: `about:debugging#/runtime/this-firefox`
+2. Click **Load Temporary Add-on**
+3. Select `manifest.json` from this repo root
+
+### Chrome
+1. Go to: `chrome://extensions/`
+2. Enable **Developer mode**
+3. Click **Load unpacked** and select repo folder
+
+---
+
+## Firefox Troubleshooting
+
+### Error: `does not contain a valid manifest`
+Your archive has a nested top-level directory. `manifest.json` must be at archive root.
+
+### Error: `background.service_worker is currently disabled. Add background.scripts.`
+- Update Firefox
+- Reload temporary add-on
+- If needed, test in Firefox Developer Edition/Nightly
+
+### “Show more” not visible
+Open ChatGPT tab console and check for:
+- `[Trimwise] Show more button mounted`
+- `[Trimwise] Using floating fallback for Show more button`
+
+---
+
+## Floating Settings Button + Dark Mode
+
+The settings button is rendered as a floating UI element (outside ChatGPT’s React tree) and now supports dark-mode styling.
+
+Why this helps:
+- Reduces React hydration/reconciliation conflicts.
+- Keeps settings access visible across changing composer layouts.
+- Improves readability in dark UI contexts.
+
+---
+
+## Versioning Policy
+
+Fork releases follow:
+- `v2.1-firefox.N`
+
+Where:
+- `2.1` = upstream feature generation
+- `firefox` = fork channel
+- `N` = fork maintenance/release increment
+
+See full release history in [CHANGELOG.md](./CHANGELOG.md).
+
+---
+
+## Changelog Snapshot
+
+- `v2.1-firefox.10` — floating settings now passes chat theme and opens dark options page reliably
+- `v2.1-firefox.9` — dark mode fix for ChatGPT theme selectors + reliability polish
+- `v2.1-firefox.8` — dark mode for floating settings UI + full docs/credit refresh
+- `v2.1-firefox.7` — README and versioning consolidation
+- `v2.1-firefox.6` — bitwise queue flags + idle-batched mutation + chunked collapse
+- `v2.1-firefox.5` — adaptive queue + background-tab handling + floating UI resilience
+- `v2.1-firefox.4` — Firefox manifest/install troubleshooting hardening
+- `v2.1-firefox.1-3` — baseline Firefox compatibility and wrapper stabilization
+
+---
+
+## Contribution Direction (Important)
+
+Since this is an actively maintained fork, contribution direction should prioritize the **fork maintainer workflow**.
+
+- Issues/feature requests should be filed against this fork repository.
+- PRs should target this fork’s default branch.
+- Upstream links can still be referenced for historical/original context, but maintenance ownership for this fork is here.
+
+(So yes — your intuition is correct: contribution flow should point to your maintained fork.)
+
+---
+
+## Documentation
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [CHANGELOG.md](./CHANGELOG.md)
+- [TEST_GUIDE.md](./TEST_GUIDE.md)
+- [CREDITS.md](./CREDITS.md)
+- [privacy.html](./privacy.html)
+
+---
+
+## License
+
+MIT. See [LICENSE](./LICENSE).

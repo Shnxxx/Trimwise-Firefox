@@ -1,107 +1,135 @@
 # Changelog
 
-## Version 2.0 - Production-Ready Virtual Scrolling (2025-10-30)
-
-### 🚀 Major Performance Overhaul
-
-This release completely rewrites the core engine to deliver **true performance improvements** by removing offscreen messages from the DOM, not just hiding them.
-
-### ✨ New Features
-
-- **True Virtual Scrolling**: Messages outside the viewport are completely removed from the DOM and replaced with height-preserving placeholders
-  - 70-90% memory reduction in long conversations (500+ messages)
-  - Maintains smooth scrolling with zero position jumping
-  - Seamless restoration when scrolling to older messages
-
-- **IntersectionObserver Integration**: Native browser APIs detect viewport changes with zero polling overhead
-  - Messages automatically virtualize when scrolling away
-  - Placeholders automatically restore messages when scrolling back
-  - 1200px buffer zone ensures messages load before becoming visible
-
-### ⚡ Performance Optimizations
-
-- **MutationObserver replaces setInterval**: 95% CPU reduction during idle
-  - Only runs when ChatGPT actually adds/removes messages
-  - Instant response to new messages (no 3-second delay)
-  - Debounced to batch rapid changes during streaming
-
-- **Smart Change Detection**: Eliminates unnecessary work
-  - Caches previous state (message count, visible range, button text)
-  - Early exits when nothing changed
-  - Only updates DOM elements that need changes
-
-- **Element Reuse**: Zero allocation churn
-  - "Show more" button reused across updates
-  - Only text/position updated, never recreated
-  - Reduces garbage collection pressure
-
-- **CSS Classes over Inline Styles**: Faster DOM manipulation
-  - Browser-optimized class toggling
-  - No style recalculation overhead
-  - Cleaner separation of concerns
-
-### 🎨 UX Improvements
-
-- **Smooth Scrolling**: Height placeholders prevent scroll jumping
-  - Sub-pixel height accuracy with getBoundingClientRect
-  - Maintains exact scroll position during virtualization
-  - Buffer zones ensure seamless restoration
-
-- **Visual Polish**: Button hover/active states
-  - Smooth transitions
-  - Subtle lift effect on hover
-  - Consistent with ChatGPT's design language
-
-### 🔧 Technical Details
-
-- **No React Internals**: Pure DOM manipulation, ChatGPT-agnostic
-  - Works with any ChatGPT update
-  - No fragile React Fiber hooks
-  - No risk of breaking ChatGPT features
-
-- **Chrome MV3 Compliant**: Production-ready extension
-  - No experimental APIs
-  - Proper cleanup on unload
-  - Memory leak prevention
-
-- **Backward Compatible**: All existing features preserved
-  - Options page unchanged
-  - Settings storage format identical
-  - "Show more" behavior maintained
-
-### 📊 Performance Metrics
-
-Before (v1.1):
-- Messages: `display: none` (all stay in DOM/memory)
-- CPU: Polls every 3 seconds (8.3ms every second)
-- Memory: 100% of messages in React vDOM
-- DOM writes: 200+ style updates per cycle
-
-After (v2.0):
-- Messages: Removed from DOM (only visible in memory)
-- CPU: Triggered by actual changes (0.4ms average)
-- Memory: ~20% of messages in DOM (80% reduction)
-- DOM writes: Only changed elements updated
-
-### 🐛 Bug Fixes
-
-- Fixed: Button constantly recreated causing flicker
-- Fixed: Style writes even when nothing changed
-- Fixed: No detection of concurrent changes
-- Fixed: Inline styles conflicting with ChatGPT themes
+This file contains the fork release history and notable technical changes.
 
 ---
 
-## Version 1.1 (Previous Release)
+## v2.1-firefox.10 (2026-03-03)
 
-- Dynamic message display based on user settings
-- Settings page with range slider (5-100 messages)
-- Improved button text ("All messages are shown")
-- Visual enhancements (pastel theme, rounded corners)
-- Chrome storage integration
+### Author
+- Shnxxx
 
-## Version 1.0 (Initial Release)
+### Fixed
+- Clicking floating settings now passes current chat theme (`dark`/`light`) before opening options.
+- Options page now applies the stored theme and renders dark mode when opened from dark ChatGPT sessions.
 
-- Hide all but last 50 messages with `display: none`
-- "Show more" button to reveal older content
-- Basic performance improvement for long chats
+### Changed
+- Updated options page styles to use theme variables with dark-mode support.
+
+---
+
+## v2.1-firefox.9 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Fixed
+- Floating settings dark mode now applies reliably when ChatGPT uses theme classes/attributes instead of media-query matching.
+- Added explicit dark-theme selectors for `html/body` (`.dark` and `[data-theme="dark"]`) with safe priority.
+
+---
+
+## v2.1-firefox.8 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Added
+- Dark-mode styling for floating settings button UI.
+- Documentation overhaul covering fork lineage, versioning, contribution credits, and maintainer ownership.
+
+### Changed
+- README rewritten to describe this repository as a maintained Firefox-focused performance fork.
+- Contributing/ownership guidance updated to direct users toward the fork maintainer workflow.
+
+---
+
+## v2.1-firefox.7 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Changed
+- Full README restructure with fork status, versioning policy, troubleshooting, and maintenance-focused docs.
+
+---
+
+## v2.1-firefox.6 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Added
+- Bitwise queue membership flags to reduce duplicate queue scheduling work.
+- Idle-batched mutation processing pipeline.
+- Chunked idle collapse scanning with cached height reads.
+
+### Changed
+- Adaptive queue scheduling and deferred mutation/collapse processing tuned for long active chats.
+
+---
+
+## v2.1-firefox.5 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Added
+- Adaptive frame-budgeted virtualization queue.
+- Background-tab-aware heavy-work deferral.
+- Floating settings button outside React tree to reduce UI conflicts.
+- Show-more fallback placement for unstable inline insertion scenarios.
+
+### Changed
+- Cross-browser runtime/storage wrappers hardened.
+
+---
+
+## v2.1-firefox.4 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Added
+- Firefox troubleshooting guidance for manifest and service worker fallback errors.
+
+### Changed
+- Manifest compatibility improvements for Firefox environments.
+
+---
+
+## v2.1-firefox.3 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Added
+- Cross-browser wrapper support for options/content/background runtime pathways.
+
+---
+
+## v2.1-firefox.2 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Added
+- Gecko metadata and host matching updates for Firefox support.
+
+---
+
+## v2.1-firefox.1 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Added
+- Initial fork baseline from Trimwise v2.1 for Firefox-focused maintenance.
+- Fork optimization roadmap and compatibility adaptation foundation.
+
+---
+
+## Upstream Lineage
+
+- Base project and original concept by **Garanovich**.
+- Fork source reference used in this maintainer stream: **icedmoca**.

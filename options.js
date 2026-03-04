@@ -1,10 +1,60 @@
+function getLocalStorage(key, callback) {
+    if (typeof browser !== 'undefined' && browser.storage?.local) {
+        browser.storage.local.get(key)
+            .then(callback)
+            .catch((error) => {
+                console.error('[Trimwise] Failed to load local settings', error);
+                callback({});
+            });
+        return;
+    }
+
+    chrome.storage.local.get(key, callback);
+}
+
+function getSyncStorage(key, callback) {
+    if (typeof browser !== 'undefined' && browser.storage?.sync) {
+        browser.storage.sync.get(key)
+            .then(callback)
+            .catch((error) => {
+                console.error('[Trimwise] Failed to load settings', error);
+                callback({});
+            });
+        return;
+    }
+
+    chrome.storage.sync.get(key, callback);
+}
+
+function setSyncStorage(data, callback) {
+    if (typeof browser !== 'undefined' && browser.storage?.sync) {
+        browser.storage.sync.set(data)
+            .then(callback)
+            .catch((error) => {
+                console.error('[Trimwise] Failed to save settings', error);
+            });
+        return;
+    }
+
+    chrome.storage.sync.set(data, callback);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // Apply theme preference passed from chat page
+    getLocalStorage('trimwiseOptionsTheme', (data) => {
+        if (data.trimwiseOptionsTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else if (data.trimwiseOptionsTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    });
+
     const batchSizeRange = document.getElementById('batchSizeRange');
     const batchSizeValue = document.getElementById('batchSizeValue');
     const saveButton = document.getElementById('saveButton');
 
     // Load and apply saved settings
-    chrome.storage.sync.get('batchSize', (data) => {
+    getSyncStorage('batchSize', (data) => {
         if (data.batchSize) {
             batchSizeRange.value = data.batchSize;
             batchSizeValue.textContent = `${data.batchSize} messages`;
@@ -19,9 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Save settings when button is clicked
     saveButton.addEventListener('click', () => {
         const selectedSize = batchSizeRange.value;
-        chrome.storage.sync.set({ batchSize: selectedSize }, () => {
+        setSyncStorage({ batchSize: selectedSize }, () => {
             alert('Settings saved. Please reload the chat page for changes to take effect.');
         });
     });
 });
-
