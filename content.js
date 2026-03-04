@@ -1,5 +1,5 @@
 /**
- * Trimwise Forfoxxx v2.1-firefox.10 - Production-Ready Virtual Scrolling + Message Collapse System
+ * Trimwise Forfoxxx v2.1-firefox.11 - Production-Ready Virtual Scrolling + Message Collapse System
  * 
  * ARCHITECTURE OVERVIEW:
  * =====================
@@ -8,7 +8,7 @@
  * and replaced with height-preserving placeholders, then seamlessly restored when
  * scrolling brings them back into view.
  * 
- * NEW IN v2.1-firefox.10: Firefox compatibility hardening, adaptive scheduling, and long-message collapse
+ * NEW IN v2.1-firefox.11: Firefox compatibility hardening, adaptive scheduling, and long-message collapse
  * buttons, reducing page weight and improving scroll performance even further.
  * 
  * KEY OPTIMIZATIONS:
@@ -1314,7 +1314,7 @@ function initialize() {
     }
     window.__trimwiseInitialized = true;
 
-    console.log('[Trimwise] Initializing v2.1-firefox.10 with virtual scrolling + message collapse');
+    console.log('[Trimwise] Initializing v2.1-firefox.11 with virtual scrolling + message collapse');
     
     // Load user settings (triggers initial virtualization)
     loadSettings();

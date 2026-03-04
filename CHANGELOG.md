@@ -4,6 +4,18 @@ This file contains the fork release history and notable technical changes.
 
 ---
 
+## v2.1-firefox.11 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Changed
+- Aligned addon name/version across manifest, runtime banner/logs, and docs.
+- Switched Firefox background configuration to `background.scripts` only, per Firefox-focused strict compatibility preference.
+- Updated options page title/header to use `Trimwise Forfoxxx` naming.
+
+---
+
 ## v2.1-firefox.10 (2026-03-03)
 
 ### Author
