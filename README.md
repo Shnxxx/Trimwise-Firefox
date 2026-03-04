@@ -1,4 +1,4 @@
-# Trimwise Firefox Fork
+# Trimwise Forfoxxx Firefox Fork
 
 A Firefox-focused, cross-browser fork of Trimwise for making long ChatGPT conversations significantly smoother.
 
@@ -14,9 +14,9 @@ For detailed authorship notes, see [CREDITS.md](./CREDITS.md).
 
 ## Current Fork Version
 
-**`v2.1-firefox.8`**
+**`v2.1-firefox.11`**
 
-This version includes all previous fork optimizations plus a dark-mode treatment for the floating settings UI and full documentation consolidation.
+This version includes all previous fork optimizations plus version/name alignment across manifest/docs/runtime and Firefox-only background scripts configuration.
 
 ---
 
@@ -46,7 +46,7 @@ This version includes all previous fork optimizations plus a dark-mode treatment
 
 > These are directional/engineering estimates, not lab-certified benchmarks.
 
-| Scenario | Baseline (no virtualization) | Fork (v2.1-firefox.8) | Expected effect |
+| Scenario | Baseline (no virtualization) | Fork (v2.1-firefox.11) | Expected effect |
 |---|---:|---:|---|
 | DOM nodes in long chat | Very high (grows with full history) | Bounded around active range + placeholders | Lower layout/repaint cost |
 | Mutation burst handling | Immediate repeated processing | Idle-batched/coalesced processing | Fewer main-thread spikes |
@@ -76,10 +76,12 @@ This version includes all previous fork optimizations plus a dark-mode treatment
 ### Error: `does not contain a valid manifest`
 Your archive has a nested top-level directory. `manifest.json` must be at archive root.
 
-### Error: `background.service_worker is currently disabled. Add background.scripts.`
-- Update Firefox
+### Background compatibility note (Firefox)
+This fork uses `background.scripts` for Firefox-focused compatibility.
+If background fails to start:
 - Reload temporary add-on
-- If needed, test in Firefox Developer Edition/Nightly
+- Restart Firefox and reload add-on
+- Test with latest stable Firefox
 
 ### “Show more” not visible
 Open ChatGPT tab console and check for:
@@ -115,6 +117,9 @@ See full release history in [CHANGELOG.md](./CHANGELOG.md).
 
 ## Changelog Snapshot
 
+- `v2.1-firefox.11` — version/name alignment + Firefox-only background scripts config
+- `v2.1-firefox.10` — floating settings now passes chat theme and opens dark options page reliably
+- `v2.1-firefox.9` — dark mode fix for ChatGPT theme selectors + reliability polish
 - `v2.1-firefox.8` — dark mode for floating settings UI + full docs/credit refresh
 - `v2.1-firefox.7` — README and versioning consolidation
 - `v2.1-firefox.6` — bitwise queue flags + idle-batched mutation + chunked collapse

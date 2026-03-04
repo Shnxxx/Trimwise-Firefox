@@ -1,3 +1,17 @@
+function getLocalStorage(key, callback) {
+    if (typeof browser !== 'undefined' && browser.storage?.local) {
+        browser.storage.local.get(key)
+            .then(callback)
+            .catch((error) => {
+                console.error('[Trimwise] Failed to load local settings', error);
+                callback({});
+            });
+        return;
+    }
+
+    chrome.storage.local.get(key, callback);
+}
+
 function getSyncStorage(key, callback) {
     if (typeof browser !== 'undefined' && browser.storage?.sync) {
         browser.storage.sync.get(key)
@@ -26,6 +40,15 @@ function setSyncStorage(data, callback) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Apply theme preference passed from chat page
+    getLocalStorage('trimwiseOptionsTheme', (data) => {
+        if (data.trimwiseOptionsTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        } else if (data.trimwiseOptionsTheme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+    });
+
     const batchSizeRange = document.getElementById('batchSizeRange');
     const batchSizeValue = document.getElementById('batchSizeValue');
     const saveButton = document.getElementById('saveButton');

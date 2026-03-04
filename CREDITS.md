@@ -25,6 +25,8 @@ This document tracks authorship, fork lineage, and contribution summaries.
 - Added floating UI resilience (settings and show-more fallback behavior).
 - Reworked project documentation with fork versioning/changelog structure.
 - Added dark-mode styling support for floating settings UI.
+- Fixed dark-mode selector compatibility so floating settings styling applies reliably in ChatGPT dark theme.
+- Implemented chat-theme-to-options sync so floating settings opens options in matching dark/light mode.
 
 ## Attribution Guidance for Future Releases
 

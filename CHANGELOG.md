@@ -4,6 +4,43 @@ This file contains the fork release history and notable technical changes.
 
 ---
 
+## v2.1-firefox.11 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Changed
+- Aligned addon name/version across manifest, runtime banner/logs, and docs.
+- Switched Firefox background configuration to `background.scripts` only, per Firefox-focused strict compatibility preference.
+- Updated options page title/header to use `Trimwise Forfoxxx` naming.
+
+---
+
+## v2.1-firefox.10 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Fixed
+- Clicking floating settings now passes current chat theme (`dark`/`light`) before opening options.
+- Options page now applies the stored theme and renders dark mode when opened from dark ChatGPT sessions.
+
+### Changed
+- Updated options page styles to use theme variables with dark-mode support.
+
+---
+
+## v2.1-firefox.9 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Fixed
+- Floating settings dark mode now applies reliably when ChatGPT uses theme classes/attributes instead of media-query matching.
+- Added explicit dark-theme selectors for `html/body` (`.dark` and `[data-theme="dark"]`) with safe priority.
+
+---
+
 ## v2.1-firefox.8 (2026-03-03)
 
 ### Author

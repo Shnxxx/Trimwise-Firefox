@@ -1,5 +1,5 @@
 /**
- * Trimwise v2.1 - Production-Ready Virtual Scrolling + Message Collapse System
+ * Trimwise Forfoxxx v2.1-firefox.11 - Production-Ready Virtual Scrolling + Message Collapse System
  * 
  * ARCHITECTURE OVERVIEW:
  * =====================
@@ -8,7 +8,7 @@
  * and replaced with height-preserving placeholders, then seamlessly restored when
  * scrolling brings them back into view.
  * 
- * NEW IN v2.1: Long user messages are automatically collapsed with expand/collapse
+ * NEW IN v2.1-firefox.11: Firefox compatibility hardening, adaptive scheduling, and long-message collapse
  * buttons, reducing page weight and improving scroll performance even further.
  * 
  * KEY OPTIMIZATIONS:
@@ -165,15 +165,33 @@ styleSheet.textContent = `
     /* Dark mode support for floating settings button */
     @media (prefers-color-scheme: dark) {
         .trimwise-settings-btn {
-            background: var(--main-surface-primary, #202123);
-            color: var(--text-secondary, #c5c5d2);
-            border-color: var(--border-light, #3c3c46);
+            background: #202123;
+            color: #c5c5d2;
+            border-color: #3c3c46;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
         }
 
         .trimwise-settings-btn:hover {
             opacity: 0.9;
         }
+    }
+
+    /* Explicit ChatGPT dark-theme selectors (in case media query does not match) */
+    html.dark .trimwise-settings-btn,
+    html[data-theme="dark"] .trimwise-settings-btn,
+    body.dark .trimwise-settings-btn,
+    body[data-theme="dark"] .trimwise-settings-btn {
+        background: #202123 !important;
+        color: #c5c5d2 !important;
+        border-color: #3c3c46 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    html.dark .trimwise-settings-btn:hover,
+    html[data-theme="dark"] .trimwise-settings-btn:hover,
+    body.dark .trimwise-settings-btn:hover,
+    body[data-theme="dark"] .trimwise-settings-btn:hover {
+        opacity: 0.9;
     }
     
     /* Collapsed message styles */
@@ -1255,7 +1273,16 @@ function injectSettingsButton() {
 
     // Open options page on click
     settingsBtn.onclick = () => {
-        sendRuntimeMessage({ action: 'openOptions' });
+        const isDarkTheme = document.documentElement.classList.contains('dark') ||
+            document.documentElement.getAttribute('data-theme') === 'dark' ||
+            document.body?.classList.contains('dark') ||
+            document.body?.getAttribute('data-theme') === 'dark' ||
+            window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        sendRuntimeMessage({
+            action: 'openOptions',
+            theme: isDarkTheme ? 'dark' : 'light'
+        });
     };
 
     document.body.appendChild(settingsBtn);
@@ -1287,7 +1314,7 @@ function initialize() {
     }
     window.__trimwiseInitialized = true;
 
-    console.log('[Trimwise] Initializing v2.1 with virtual scrolling + message collapse');
+    console.log('[Trimwise] Initializing v2.1-firefox.11 with virtual scrolling + message collapse');
     
     // Load user settings (triggers initial virtualization)
     loadSettings();
