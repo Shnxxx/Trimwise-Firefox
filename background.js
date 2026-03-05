@@ -1,14 +1,28 @@
 /**
- * Trimwise Background Service Worker
+ * Trimwise Background Script (Firefox)
  * Handles messages from content script
  */
 
 'use strict';
 
-// Listen for messages from content script
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+function setLocalStorage(data) {
+    return browser.storage.local.set(data).catch((error) => {
+        console.error('[Trimwise] Failed to save local settings', error);
+    });
+}
+
+function openOptionsPage() {
+    browser.runtime.openOptionsPage().catch((error) => {
+        console.error('[Trimwise] Failed to open options page', error);
+    });
+}
+
+browser.runtime.onMessage.addListener((request) => {
     if (request.action === 'openOptions') {
-        // Open the options page in a new tab
-        chrome.runtime.openOptionsPage();
+        const theme = request.theme === 'dark' ? 'dark' : 'light';
+
+        setLocalStorage({ trimwiseOptionsTheme: theme }).finally(() => {
+            openOptionsPage();
+        });
     }
 });

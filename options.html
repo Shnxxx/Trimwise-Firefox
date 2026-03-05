@@ -3,57 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trimwise Options</title>
+    <title>Trimwise Forfoxxx Options</title>
     <style>
+        :root {
+            color-scheme: light dark;
+            --bg: #f9f9ff;
+            --card-bg: #ffffff;
+            --text: #1f2430;
+            --muted: #4b5563;
+            --button-bg: #d0e8f2;
+            --button-bg-hover: #b2d4e7;
+            --border: #d8deea;
+            --link: #2563eb;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #111317;
+                --card-bg: #1b1f27;
+                --text: #e8eaf0;
+                --muted: #b9bfcc;
+                --button-bg: #2f8fcb;
+                --button-bg-hover: #3da0de;
+                --border: #2f3542;
+                --link: #8ab4ff;
+            }
+        }
+
+        html[data-theme='dark'] {
+            --bg: #111317;
+            --card-bg: #1b1f27;
+            --text: #e8eaf0;
+            --muted: #b9bfcc;
+            --button-bg: #2f8fcb;
+            --button-bg-hover: #3da0de;
+            --border: #2f3542;
+            --link: #8ab4ff;
+        }
+
         body {
             font-family: Arial, sans-serif;
             font-size: 16px;
             padding: 20px;
             max-width: 600px;
-            margin: 40px auto; /* Add space at the top */
-            background-color: #f9f9ff;
+            margin: 40px auto;
+            background-color: var(--bg);
+            color: var(--text);
+            transition: background-color 0.2s ease, color 0.2s ease;
         }
+
         .container {
-            background-color: #ffffff; /* Different background color for the container */
+            background-color: var(--card-bg);
             border-radius: 18px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
             padding: 20px;
         }
-        input[type='range'] { width: 100%; }
-        p { text-align: center; }
+
+        input[type='range'] {
+            width: 100%;
+        }
+
+        p {
+            text-align: center;
+            color: var(--muted);
+        }
+
         .centered {
             text-align: center;
             margin-bottom: 20px;
         }
+
         button {
             display: block;
             margin: 20px auto;
             padding: 10px 20px;
-            background-color: #d0e8f2;
-            color: #333;
+            background-color: var(--button-bg);
+            color: var(--text);
             border: none;
             border-radius: 18px;
             cursor: pointer;
             font-size: 16px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.3s ease;
+            transition: background-color 0.2s ease;
         }
+
         button:hover {
-            background-color: #b2d4e7;
+            background-color: var(--button-bg-hover);
+        }
+
+        a {
+            color: var(--link);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="centered">ChatGPT Lag Fixer Extension Settings</h1>
-        <p class="centered">Welcome to the ChatGPT Lag Fixer settings page. Adjust the number of messages displayed and contribute to our project.</p>
+        <h1 class="centered">Trimwise Forfoxxx Add-on Settings</h1>
+        <p class="centered">Welcome to Trimwise Forfoxxx settings. Adjust visible message batches and optimize long-chat browsing performance.</p>
 
-    <label for="batchSizeRange">Select number of messages to display:</label>
-    <input id="batchSizeRange" type="range" min="5" max="100" step="5" value="50">
-    <p id="batchSizeValue">50 messages</p>
-    <button id="saveButton">Save</button>
+        <label for="batchSizeRange">Select number of messages to display:</label>
+        <input id="batchSizeRange" type="range" min="5" max="100" step="5" value="50">
+        <p id="batchSizeValue">50 messages</p>
+        <button id="saveButton">Save</button>
 
-        <p class="centered">Feel free to <a href="https://github.com/garanovich/Trimwise" target="_blank">contribute on GitHub</a> or report issues.</p>
+        <p class="centered">Feel free to <a href="https://github.com/Shnxxx/Trimwise-Firefox/issues" target="_blank" rel="noopener noreferrer">contribute</a> on GitHub or report an issue.</p>
+
+        <div class="centered" style="margin-top: 18px;">
+            <a href="https://ko-fi.com/shnxxx?utm_source=trimwise-addon&utm_medium=settings&utm_campaign=support" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 16px;border-radius:14px;background:var(--button-bg);color:var(--text);text-decoration:none;font-weight:600;">If this add-on helped you, consider supporting the project 🍵</a>
+        </div>
+
+        <p class="centered" style="font-size:13px;margin-top:20px;">
+            Special thanks to the original creator <a href="https://github.com/garanovich/Trimwise" target="_blank" rel="noopener noreferrer">Garanovich</a> and fork lineage contributor <a href="https://github.com/icedmoca/Trimwise" target="_blank" rel="noopener noreferrer">icedmoca</a>.
+        </p>
     </div>
     <script src="options.js"></script>
 </body>
