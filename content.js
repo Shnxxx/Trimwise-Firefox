@@ -182,6 +182,38 @@ styleSheet.textContent = `
     body[data-theme="dark"] .trimwise-settings-btn:hover {
         opacity: 0.9;
     }
+
+    /* Dark mode support for floating settings button */
+    @media (prefers-color-scheme: dark) {
+        .trimwise-settings-btn {
+            background: #202123;
+            color: #c5c5d2;
+            border-color: #3c3c46;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+
+        .trimwise-settings-btn:hover {
+            opacity: 0.9;
+        }
+    }
+
+    /* Explicit ChatGPT dark-theme selectors (in case media query does not match) */
+    html.dark .trimwise-settings-btn,
+    html[data-theme="dark"] .trimwise-settings-btn,
+    body.dark .trimwise-settings-btn,
+    body[data-theme="dark"] .trimwise-settings-btn {
+        background: #202123 !important;
+        color: #c5c5d2 !important;
+        border-color: #3c3c46 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    html.dark .trimwise-settings-btn:hover,
+    html[data-theme="dark"] .trimwise-settings-btn:hover,
+    body.dark .trimwise-settings-btn:hover,
+    body[data-theme="dark"] .trimwise-settings-btn:hover {
+        opacity: 0.9;
+    }
     
     /* Collapsed message styles */
     .trimwise-collapsed {
