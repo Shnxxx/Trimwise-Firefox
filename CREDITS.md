@@ -35,3 +35,7 @@ For every release note or PR in this fork, include:
 - **Date:** YYYY-MM-DD
 - **Fork version:** `v2.1-firefox.N`
 - **Contribution summary:** concise bullet list of shipped changes
+
+
+### 2026-03-03 — v2.1-firefox.12
+- Firefox-only scope conversion and add-on settings UX/credit updates.

@@ -4,6 +4,24 @@ This file contains the fork release history and notable technical changes.
 
 ---
 
+## v2.1-firefox.12 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Changed
+- Converted project scope to Firefox-only runtime (removed chromium fallback paths in background/options/content wrappers).
+- Aligned add-on naming/versioning across manifest/runtime/docs (`Trimwise Forfoxxx`, `2.1.12`, `v2.1-firefox.12`).
+- Switched to Firefox `background.scripts`-only configuration.
+- Updated settings page wording from "Extension" to "Add-on".
+- Added issue-link contribution text and maintainer Ko-fi support button.
+- Added explicit credit/thanks section for Garanovich and icedmoca in settings page.
+
+### Performance
+- Added hidden-tab mutation observer detachment (`stopObserving`) to reduce background CPU usage in Firefox.
+
+---
+
 ## v2.1-firefox.11 (2026-03-03)
 
 ### Author

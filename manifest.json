@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Trimwise Forfoxxx",
-  "version": "2.1.11",
-  "description": "Trimwise Forfoxxx Firefox fork: virtual scrolling, adaptive queueing, and message collapse for long ChatGPT chats",
+  "version": "2.1.12",
+  "description": "Trimwise Forfoxxx Firefox add-on: virtual scrolling, adaptive queueing, and message collapse for long ChatGPT chats",
   "permissions": [
     "storage"
   ],

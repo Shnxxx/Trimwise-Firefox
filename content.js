@@ -1,5 +1,5 @@
 /**
- * Trimwise Forfoxxx v2.1-firefox.11 - Production-Ready Virtual Scrolling + Message Collapse System
+ * Trimwise Forfoxxx v2.1-firefox.12 - Production-Ready Virtual Scrolling + Message Collapse System
  * 
  * ARCHITECTURE OVERVIEW:
  * =====================
@@ -8,7 +8,7 @@
  * and replaced with height-preserving placeholders, then seamlessly restored when
  * scrolling brings them back into view.
  * 
- * NEW IN v2.1-firefox.11: Firefox compatibility hardening, adaptive scheduling, and long-message collapse
+ * NEW IN v2.1-firefox.12: Firefox compatibility hardening, adaptive scheduling, and long-message collapse
  * buttons, reducing page weight and improving scroll performance even further.
  * 
  * KEY OPTIMIZATIONS:
@@ -38,32 +38,17 @@
 'use strict';
 
 function getSyncStorage(key, callback) {
-    if (typeof browser !== 'undefined' && browser.storage?.sync) {
-        browser.storage.sync.get(key)
-            .then(callback)
-            .catch((error) => {
-                console.error('[Trimwise] Failed to load settings', error);
-                callback({});
-            });
-        return;
-    }
-
-    chrome.storage.sync.get(key, callback);
+    browser.storage.sync.get(key)
+        .then(callback)
+        .catch((error) => {
+            console.error('[Trimwise] Failed to load settings', error);
+            callback({});
+        });
 }
 
 function sendRuntimeMessage(message) {
-    if (typeof browser !== 'undefined' && browser.runtime?.sendMessage) {
-        browser.runtime.sendMessage(message).catch((error) => {
-            console.error('[Trimwise] Failed to send runtime message', error);
-        });
-        return;
-    }
-
-    chrome.runtime.sendMessage(message, () => {
-        const runtimeError = chrome.runtime.lastError;
-        if (runtimeError) {
-            console.error('[Trimwise] Failed to send runtime message', runtimeError);
-        }
+    browser.runtime.sendMessage(message).catch((error) => {
+        console.error('[Trimwise] Failed to send runtime message', error);
     });
 }
 
@@ -277,6 +262,7 @@ let isProcessing = false;                // Prevents concurrent virtualization r
 let pendingVirtualization = false;       // Flags that virtualization should run after current completes
 let initialStabilizationComplete = false; // Prevents virtualization during initial page load
 let isTabVisible = !document.hidden;     // Skip heavy work when tab is backgrounded
+let isObservingChatContainer = false;    // Track mutation observer attachment state
 
 // Virtualization metrics for debugging
 let virtualizedCount = 0;                // Total messages virtualized
@@ -313,7 +299,7 @@ const LONG_MESSAGE_THRESHOLD = 600;      // Height in pixels to consider message
 // ============================================================================
 
 /**
- * Load user preferences from chrome.storage.sync
+ * Load user preferences from browser.storage.sync (Firefox)
  * Runs once at startup, then triggers initial virtualization
  */
 function loadSettings() {
@@ -1237,12 +1223,23 @@ function startObserving() {
     
     // Start observing
     mutationObserver.observe(chatContainer, {
-        childList: true,   // Watch for added/removed nodes
-        subtree: true      // Watch entire subtree
+        childList: true,
+        subtree: true
     });
-    
+
+    isObservingChatContainer = true;
     console.log('[Trimwise] Started observing chat container');
 }
+
+function stopObserving() {
+    if (!isObservingChatContainer) {
+        return;
+    }
+
+    mutationObserver.disconnect();
+    isObservingChatContainer = false;
+}
+
 
 // ============================================================================
 // SETTINGS BUTTON IN COMPOSER
@@ -1293,11 +1290,14 @@ function handleVisibilityChange() {
     isTabVisible = !document.hidden;
 
     if (isTabVisible) {
-        // Catch up on any pending DOM changes when tab becomes active
+        startObserving();
         updateVisibleRange(true);
         if (mutationChangesPending) {
             scheduleMutationProcessing();
         }
+    } else {
+        // Firefox optimization: fully detach mutation observer while hidden
+        stopObserving();
     }
 }
 
@@ -1314,7 +1314,7 @@ function initialize() {
     }
     window.__trimwiseInitialized = true;
 
-    console.log('[Trimwise] Initializing v2.1-firefox.11 with virtual scrolling + message collapse');
+    console.log('[Trimwise] Initializing v2.1-firefox.12 with virtual scrolling + message collapse');
     
     // Load user settings (triggers initial virtualization)
     loadSettings();
@@ -1349,6 +1349,7 @@ window.addEventListener('beforeunload', () => {
     if (mutationObserver) {
         mutationObserver.disconnect();
     }
+    isObservingChatContainer = false;
 
     document.removeEventListener('visibilitychange', handleVisibilityChange);
     if (messageObserver) {
