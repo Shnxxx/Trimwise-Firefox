@@ -40,9 +40,16 @@ This repository is strictly Firefox-focused. Chromium/Chrome compatibility is in
 - Firefox-only options UI simplification: integer input + compact save action for lower UI overhead
 
 ## Installation (Firefox)
+
+### Option 1 — Install from Release (.xpi)
+1. Download the `.xpi` file from the **Releases** section.
+2. Open the downloaded file in Firefox.
+3. Click **Add** when Firefox prompts to install the add-on.
+
+### Option 2 — Temporary Install (for testing / development)
 1. Open: `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on**
-3. Select `manifest.json`
+3. Select `manifest.json` from the project folder.
 
 ## Settings Window Notes
 - Floating settings button opens **Add-on Settings** (not "Extension")
