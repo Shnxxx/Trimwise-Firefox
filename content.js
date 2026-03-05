@@ -1,5 +1,5 @@
 /**
- * Trimwise Forfoxxx v2.1-firefox.12 - Production-Ready Virtual Scrolling + Message Collapse System
+ * Trimwise Forfoxxx v2.1-firefox.13 - Production-Ready Virtual Scrolling + Message Collapse System
  * 
  * ARCHITECTURE OVERVIEW:
  * =====================
@@ -8,7 +8,7 @@
  * and replaced with height-preserving placeholders, then seamlessly restored when
  * scrolling brings them back into view.
  * 
- * NEW IN v2.1-firefox.12: Firefox compatibility hardening, adaptive scheduling, and long-message collapse
+ * NEW IN v2.1-firefox.13: Firefox compatibility hardening, adaptive scheduling, and long-message collapse
  * buttons, reducing page weight and improving scroll performance even further.
  * 
  * KEY OPTIMIZATIONS:
@@ -126,8 +126,8 @@ styleSheet.textContent = `
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 38px;
-        height: 38px;
+        width: 40px;
+        height: 40px;
         border-radius: 50%;
         border: 1px solid var(--border-light, #e5e5e5);
         background: var(--main-surface-primary, #fff);
@@ -135,6 +135,9 @@ styleSheet.textContent = `
         cursor: pointer;
         transition: opacity 0.2s ease;
         z-index: 2147483645;
+        box-sizing: border-box;
+        padding: 0;
+        line-height: 0;
     }
     
     .trimwise-settings-btn:hover {
@@ -145,6 +148,39 @@ styleSheet.textContent = `
         width: 20px;
         height: 20px;
         fill: currentColor;
+        display: block;
+    }
+
+    /* Dark mode support for floating settings button */
+    @media (prefers-color-scheme: dark) {
+        .trimwise-settings-btn {
+            background: #202123;
+            color: #c5c5d2;
+            border-color: #3c3c46;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+        }
+
+        .trimwise-settings-btn:hover {
+            opacity: 0.9;
+        }
+    }
+
+    /* Explicit ChatGPT dark-theme selectors (in case media query does not match) */
+    html.dark .trimwise-settings-btn,
+    html[data-theme="dark"] .trimwise-settings-btn,
+    body.dark .trimwise-settings-btn,
+    body[data-theme="dark"] .trimwise-settings-btn {
+        background: #202123 !important;
+        color: #c5c5d2 !important;
+        border-color: #3c3c46 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+    }
+
+    html.dark .trimwise-settings-btn:hover,
+    html[data-theme="dark"] .trimwise-settings-btn:hover,
+    body.dark .trimwise-settings-btn:hover,
+    body[data-theme="dark"] .trimwise-settings-btn:hover {
+        opacity: 0.9;
     }
 
     /* Dark mode support for floating settings button */
@@ -239,7 +275,7 @@ document.head.appendChild(styleSheet);
 // Core state
 let allArticles = [];                    // Array of all message article elements
 let currentOffset = 0;                   // How many batches beyond the default are shown
-let BATCH_SIZE = 20;                     // Messages to show per "batch" (from settings)
+let BATCH_SIZE = 10;                     // Messages to show per "batch" (from settings)
 let showMoreButton = null;               // Reusable button element { wrapper, button }
 let firstVisibleIndex = 0;               // Current start of visible range (for observer checks)
 
@@ -305,8 +341,11 @@ const LONG_MESSAGE_THRESHOLD = 600;      // Height in pixels to consider message
 function loadSettings() {
     getSyncStorage('batchSize', (data) => {
         if (data.batchSize) {
-            BATCH_SIZE = parseInt(data.batchSize, 10);
-            console.log('[Trimwise] Loaded batch size:', BATCH_SIZE);
+            const parsed = parseInt(data.batchSize, 10);
+            if (Number.isInteger(parsed) && parsed > 0) {
+                BATCH_SIZE = parsed;
+                console.log('[Trimwise] Loaded batch size:', BATCH_SIZE);
+            }
         }
         
         // Wait for articles to appear before initial virtualization
@@ -1314,7 +1353,7 @@ function initialize() {
     }
     window.__trimwiseInitialized = true;
 
-    console.log('[Trimwise] Initializing v2.1-firefox.12 with virtual scrolling + message collapse');
+    console.log('[Trimwise] Initializing v2.1-firefox.13 with virtual scrolling + message collapse');
     
     // Load user settings (triggers initial virtualization)
     loadSettings();

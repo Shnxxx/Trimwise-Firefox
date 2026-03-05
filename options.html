@@ -7,116 +7,206 @@
     <style>
         :root {
             color-scheme: light dark;
-            --bg: #f9f9ff;
-            --card-bg: #ffffff;
-            --text: #1f2430;
-            --muted: #4b5563;
-            --button-bg: #d0e8f2;
-            --button-bg-hover: #b2d4e7;
-            --border: #d8deea;
+            --bg: #f5f7fb;
+            --card: #ffffff;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --accent: #10a37f;
+            --accent-hover: #0d8c6c;
             --link: #2563eb;
         }
 
         @media (prefers-color-scheme: dark) {
             :root {
-                --bg: #111317;
-                --card-bg: #1b1f27;
-                --text: #e8eaf0;
-                --muted: #b9bfcc;
-                --button-bg: #2f8fcb;
-                --button-bg-hover: #3da0de;
-                --border: #2f3542;
-                --link: #8ab4ff;
+                --bg: #0f1115;
+                --card: #171a21;
+                --text: #e5e7eb;
+                --muted: #9ca3af;
+                --border: #2a2f3a;
+                --accent: #10a37f;
+                --accent-hover: #0d8c6c;
+                --link: #93c5fd;
             }
         }
 
         html[data-theme='dark'] {
-            --bg: #111317;
-            --card-bg: #1b1f27;
-            --text: #e8eaf0;
-            --muted: #b9bfcc;
-            --button-bg: #2f8fcb;
-            --button-bg-hover: #3da0de;
-            --border: #2f3542;
-            --link: #8ab4ff;
+            --bg: #0f1115;
+            --card: #171a21;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --border: #2a2f3a;
+            --accent: #10a37f;
+            --accent-hover: #0d8c6c;
+            --link: #93c5fd;
         }
 
         body {
-            font-family: Arial, sans-serif;
-            font-size: 16px;
-            padding: 20px;
-            max-width: 600px;
-            margin: 40px auto;
-            background-color: var(--bg);
+            margin: 0;
+            min-height: 100vh;
+            padding: 24px 16px;
+            font-family: Inter, Arial, sans-serif;
+            background: var(--bg);
             color: var(--text);
-            transition: background-color 0.2s ease, color 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
         }
 
         .container {
-            background-color: var(--card-bg);
-            border-radius: 18px;
+            width: min(100%, 460px);
+            background: var(--card);
             border: 1px solid var(--border);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            border-radius: 14px;
             padding: 20px;
+            box-sizing: border-box;
         }
 
-        input[type='range'] {
-            width: 100%;
-        }
-
-        p {
+        h1 {
+            margin: 0 0 10px;
+            font-size: 20px;
             text-align: center;
+            font-weight: 700;
+        }
+
+        .desc {
+            margin: 0 0 18px;
+            color: var(--muted);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
             color: var(--muted);
         }
 
-        .centered {
-            text-align: center;
-            margin-bottom: 20px;
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type='number'] {
+            flex: 1;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            font-size: 15px;
         }
 
         button {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
-            background-color: var(--button-bg);
-            color: var(--text);
+            padding: 10px 16px;
             border: none;
-            border-radius: 18px;
+            border-radius: 10px;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.3px;
             cursor: pointer;
-            font-size: 16px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.2s ease;
         }
 
-        button:hover {
-            background-color: var(--button-bg-hover);
+        button:hover { background: var(--accent-hover); }
+
+        .help {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 12px;
         }
 
-        a {
-            color: var(--link);
+        .inside-link {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--muted);
+            width: 100%;
+        }
+
+        a { color: var(--link); }
+
+        .outside-support {
+            width: min(100%, 460px);
+            margin: 14px auto 0;
+            text-align: center;
+        }
+
+        .kofi-note {
+            margin: 0 0 8px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .kofi-icon-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+
+        .kofi-icon-link img {
+            display: block;
+            width: 140px;
+            height: auto;
+        }
+
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            color: var(--muted);
+            text-decoration: none;
+        }
+
+        .github-link svg {
+            width: 20px;
+            height: 20px;
+            fill: currentColor;
+            display: block;
+        }
+
+        .credits {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="centered">Trimwise Forfoxxx Add-on Settings</h1>
-        <p class="centered">Welcome to Trimwise Forfoxxx settings. Adjust visible message batches and optimize long-chat browsing performance.</p>
+        <h1>Trimwise Forfoxxx Add-on Settings</h1>
+        <p class="desc">Tune visible message batch size for long ChatGPT sessions.</p>
 
-        <label for="batchSizeRange">Select number of messages to display:</label>
-        <input id="batchSizeRange" type="range" min="5" max="100" step="5" value="50">
-        <p id="batchSizeValue">50 messages</p>
-        <button id="saveButton">Save</button>
-
-        <p class="centered">Feel free to <a href="https://github.com/Shnxxx/Trimwise-Firefox/issues" target="_blank" rel="noopener noreferrer">contribute</a> on GitHub or report an issue.</p>
-
-        <div class="centered" style="margin-top: 18px;">
-            <a href="https://ko-fi.com/shnxxx?utm_source=trimwise-addon&utm_medium=settings&utm_campaign=support" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:10px 16px;border-radius:14px;background:var(--button-bg);color:var(--text);text-decoration:none;font-weight:600;">If this add-on helped you, consider supporting the project 🍵</a>
+        <label for="batchSizeInput">Visible messages (positive integer):</label>
+        <div class="input-row">
+            <input id="batchSizeInput" type="number" min="1" step="1" value="10" inputmode="numeric" />
+            <button id="saveButton">SAVE</button>
         </div>
+        <p class="help">Default is 10. Use positive integers only.</p>
 
-        <p class="centered" style="font-size:13px;margin-top:20px;">
-            Special thanks to the original creator <a href="https://github.com/garanovich/Trimwise" target="_blank" rel="noopener noreferrer">Garanovich</a> and fork lineage contributor <a href="https://github.com/icedmoca/Trimwise" target="_blank" rel="noopener noreferrer">icedmoca</a>.
-        </p>
+        <p class="inside-link">Feel free to <a href="https://github.com/Shnxxx/Trimwise-Firefox/issues" target="_blank" rel="noopener noreferrer">contribute</a> on GitHub or report an issue.</p>
     </div>
+
+    <div class="outside-support">
+        <p class="kofi-note">If this add-on helped you, consider supporting the project 🍵</p>
+        <a class="kofi-icon-link" href="https://ko-fi.com/shnxxx?utm_source=trimwise-addon&utm_medium=settings&utm_campaign=support" target="_blank" rel="noopener noreferrer" aria-label="Support on Ko-fi">
+            <img src="https://storage.ko-fi.com/cdn/kofi3.png?v=6" alt="Support me on Ko-fi" />
+        </a>
+        <br/>
+        <a class="github-link" href="https://github.com/Shnxxx" target="_blank" rel="noopener noreferrer" aria-label="Shnxxx GitHub profile">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.57.11.78-.25.78-.55 0-.27-.01-1.17-.02-2.12-3.2.7-3.88-1.35-3.88-1.35-.52-1.33-1.28-1.68-1.28-1.68-1.05-.72.08-.71.08-.71 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.27-5.23-5.67 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.14 1.17a10.9 10.9 0 0 1 5.72 0c2.17-1.48 3.13-1.17 3.13-1.17.62 1.58.23 2.75.12 3.04.73.8 1.17 1.82 1.17 3.07 0 4.41-2.68 5.37-5.24 5.66.41.35.78 1.04.78 2.1 0 1.52-.01 2.74-.01 3.11 0 .3.2.67.79.55A11.51 11.51 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5z"/></svg>
+        </a>
+
+        <p class="credits">Thanks to <a href="https://github.com/garanovich/Trimwise" target="_blank" rel="noopener noreferrer">Garanovich</a> (original creator) and <a href="https://github.com/icedmoca/Trimwise" target="_blank" rel="noopener noreferrer">icedmoca</a> (fork lineage).</p>
+    </div>
+
     <script src="options.js"></script>
 </body>
 </html>

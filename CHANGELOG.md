@@ -4,6 +4,26 @@ This file contains the fork release history and notable technical changes.
 
 ---
 
+## v2.1-firefox.13 (2026-03-03)
+
+### Author
+- Shnxxx
+
+### Changed
+- Default visible messages set to **10**.
+- Settings UI redesigned to a flat/minimalist layout.
+- Replaced slider with positive integer input field + adjacent SAVE button.
+- Moved Ko-fi support button outside the settings box.
+- Added minimalist clickable GitHub icon linking to `https://github.com/Shnxxx`.
+- Updated settings copy to use **Add-on** terminology and revised contribute link text/target.
+- Added explicit credit/thanks line for Garanovich and icedmoca in settings footer.
+- Improved floating settings button symmetry/alignment.
+
+### Performance
+- Kept Firefox-only runtime path and optimized default batch behavior for lighter initial DOM workload.
+
+---
+
 ## v2.1-firefox.12 (2026-03-03)
 
 ### Author

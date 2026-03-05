@@ -25,7 +25,6 @@ function setSyncStorage(data, callback) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Apply theme preference passed from chat page
     getLocalStorage('trimwiseOptionsTheme', (data) => {
         if (data.trimwiseOptionsTheme === 'dark') {
             document.documentElement.setAttribute('data-theme', 'dark');
@@ -34,24 +33,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const batchSizeRange = document.getElementById('batchSizeRange');
-    const batchSizeValue = document.getElementById('batchSizeValue');
+    const batchSizeInput = document.getElementById('batchSizeInput');
     const saveButton = document.getElementById('saveButton');
 
     getSyncStorage('batchSize', (data) => {
-        if (data.batchSize) {
-            batchSizeRange.value = data.batchSize;
-            batchSizeValue.textContent = `${data.batchSize} messages`;
+        const value = parseInt(data.batchSize, 10);
+        if (Number.isInteger(value) && value > 0) {
+            batchSizeInput.value = String(value);
+        } else {
+            batchSizeInput.value = '10';
         }
     });
 
-    batchSizeRange.addEventListener('input', () => {
-        batchSizeValue.textContent = `${batchSizeRange.value} messages`;
-    });
-
     saveButton.addEventListener('click', () => {
-        const selectedSize = batchSizeRange.value;
-        setSyncStorage({ batchSize: selectedSize }, () => {
+        const value = parseInt(batchSizeInput.value, 10);
+
+        if (!Number.isInteger(value) || value <= 0) {
+            alert('Please enter a positive integer.');
+            batchSizeInput.focus();
+            return;
+        }
+
+        setSyncStorage({ batchSize: String(value) }, () => {
             alert('Settings saved. Please reload the chat page for changes to take effect.');
         });
     });
