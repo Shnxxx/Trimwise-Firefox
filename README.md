@@ -1,227 +1,71 @@
-# ChatGPT Lag Fixer – True Virtual Scrolling for Long Chats
+# Trimwise Forfoxxx Firefox Add-on
 
-A production-ready Chrome extension that **dramatically improves** ChatGPT performance in long conversations by implementing true virtual scrolling. Unlike simple hide/show solutions, Trimwise v2.1 completely removes offscreen messages from the DOM, reducing memory usage by 70-90% and eliminating lag.
+A Firefox-only performance add-on for ChatGPT long conversations.
 
-## ✨ What's New in v2.1
+## Why use this add-on?
+Long ChatGPT threads can become heavy over time, especially when a conversation grows to hundreds of turns. On Firefox this often shows up as:
+- slow scroll responsiveness,
+- higher CPU usage during updates,
+- larger memory footprint from keeping every message mounted,
+- heavier background-tab resource usage.
 
-**📦 Smart Message Collapsing** - Long messages now collapse automatically:
-- **Long user messages auto-collapse** by default (like Gemini)
-- **Expand/Collapse buttons** for easy toggling
-- **Reduces page weight** and improves scroll performance
-- **Works seamlessly** with virtual scrolling
+Trimwise Forfoxxx addresses these by reducing DOM pressure, batching expensive operations, and prioritizing visible content.
 
-## ✨ What's New in v2.0
+## Problems solved
+- **DOM bloat in long chats:** offscreen messages are virtualized into lightweight placeholders.
+- **Main-thread spikes:** virtualize/restore work is processed through adaptive frame budgets.
+- **Repeated mutation churn:** conversation updates are coalesced and processed in idle-friendly batches.
+- **Costly full collapse passes:** long-message collapse scans are chunked and cached.
+- **Background-tab waste:** observers are detached/paused when the tab is hidden.
 
-**🚀 True Performance Gains** - Not just hiding, actually removing messages from memory:
-- **70-90% memory reduction** in 500+ message conversations
-- **95% CPU reduction** during idle (no more polling)
-- **Instant response** to new messages (was 3-second delay)
-- **Smooth scrolling** with zero position jumping
+## Maintainer + Lineage
+- Maintainer / Author: **Shnxxx**
+- Original creator: **Garanovich**
+- Fork lineage reference: **icedmoca**
 
-## 🔧 Features
+## Version
+- Current: **v2.1-firefox.13**
+- Manifest: **2.1.13**
 
-### Message Collapse System (NEW in v2.1)
-- **Auto-Collapse Long Messages**: User messages over 600px height collapse automatically
-- **Expand/Collapse Button**: Toggle between collapsed/expanded states
-- **Smooth Animations**: Fade gradient at bottom when collapsed
-- **Preserved Across Scrolling**: Collapse state maintained during virtualization
+## Firefox-only Scope
+This repository is strictly Firefox-focused. Chromium/Chrome compatibility is intentionally removed.
 
-### Virtual Scrolling Engine
-- **Smart DOM Management**: Offscreen messages completely removed from DOM
-- **Height Placeholders**: Maintains exact scroll position (no jumping)
-- **Seamless Restoration**: Messages reload before becoming visible (1200px buffer)
-- **Browser-Native**: Uses IntersectionObserver for optimal performance
+## Key Performance Optimizations (Firefox)
+- Virtual scrolling with DOM removal + height placeholders
+- Adaptive frame-budget queue for virtualize/restore operations
+- Bitwise queue-state flags to avoid redundant scheduling
+- Idle-batched mutation processing
+- Chunked collapse scanning with cached height reads
+- Background-tab observer detachment (`visibilitychange`) to reduce hidden-tab CPU usage
+- Firefox-only options UI simplification: integer input + compact save action for lower UI overhead
 
-### Performance Optimizations
-- **Event-Driven Updates**: MutationObserver detects changes (vs polling every 3s)
-- **Change Detection**: Eliminates unnecessary DOM queries and updates
-- **Element Reuse**: Zero allocation churn for stable elements
-- **CSS Classes**: Fast class toggling vs slow inline style writes
+## Installation (Firefox)
+1. Open: `about:debugging#/runtime/this-firefox`
+2. Click **Load Temporary Add-on**
+3. Select `manifest.json`
 
-### User Experience
-- **Configurable Batch Size**: Show 5-100 messages at a time (settings page)
-- **"Show More" Control**: Expand visible range with one click
-- **Visual Polish**: Smooth button animations matching ChatGPT's design
-- **Backward Compatible**: All v1.x settings preserved
+## Settings Window Notes
+- Floating settings button opens **Add-on Settings** (not "Extension")
+- Settings page follows chat dark/light theme when opened
+- Includes:
+  - Contribute link (issues): https://github.com/Shnxxx/Trimwise-Firefox/issues
+  - Ko-fi support button
+  - Credits to Garanovich and icedmoca
 
-## 📊 Performance Comparison
+## Theoretical Performance Comparison
 
-| Metric | v1.1 (Hide) | v2.0 (Virtual) | Improvement |
-|--------|-------------|----------------|-------------|
-| Memory (500 msgs) | 100% in DOM | ~20% in DOM | **80% reduction** |
-| CPU (idle) | 8.3ms/sec | 0.4ms/sec | **95% reduction** |
-| New message delay | 0-3 seconds | Instant | **Instant** |
-| DOM operations | 200+/cycle | Changed only | **90% reduction** |
+| Scenario | Baseline | v2.1-firefox.13 |
+|---|---:|---:|
+| Mutation burst handling | Repeated immediate work | Idle-batched/coalesced |
+| Virtualize/restore spikes | High same-frame churn | Adaptive frame-budget queue |
+| Hidden-tab CPU | Continues processing | Observer detached while hidden |
+| Collapse scanning | Large synchronous scan | Chunked idle scan + cache |
 
-## 💡 Why?
+## Docs
+- [CHANGELOG.md](./CHANGELOG.md)
+- [CREDITS.md](./CREDITS.md)
+- [ARCHITECTURE.md](./ARCHITECTURE.md)
+- [TEST_GUIDE.md](./TEST_GUIDE.md)
 
-Long ChatGPT conversations (100+ messages) cause severe performance issues:
-- Browser lag and freezing
-- High memory usage (1GB+ for 500 messages)
-- Slow scrolling
-- React reconciliation overhead
-
-**Previous solutions** (including v1.1) only hid messages with `display: none` – they stayed in memory and React's virtual DOM, providing minimal improvement.
-
-**Trimwise v2.0** actually removes messages from the DOM and restores them on-demand, delivering real performance gains.
-
-## 🧑‍💻 Install
-
-### Option 1: Chrome Web Store (Recommended - Coming Soon)
-*Extension will be available on Chrome Web Store after review*
-
-### Option 2: Load Unpacked (Developer Mode)
-1. **Clone or download** this repository
-   ```bash
-   git clone https://github.com/garanovich/Trimwise.git
-   ```
-2. **Open Chrome** and navigate to `chrome://extensions/`
-3. **Enable "Developer mode"** (toggle in top right)
-4. **Click "Load unpacked"**
-5. **Select the Trimwise folder**
-6. **Done!** Extension will appear in your toolbar
-
-### Configuration
-1. **Click the extension icon** or right-click → Options
-2. **Adjust message count** (5-100, default 20)
-3. **Save settings**
-4. **Reload ChatGPT tab** to apply
-
-## 📖 Documentation
-
-- **[CHANGELOG.md](./CHANGELOG.md)** - Version history and release notes
-- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Technical deep-dive, maintenance guide
-- **[privacy.html](./privacy.html)** - Privacy policy (no data collection)
-
-## 🎯 How It Works
-
-### The Problem
-ChatGPT keeps all messages in the DOM as you chat. A 500-message conversation can have:
-- 10,000+ DOM nodes
-- 500 React components in memory
-- Syntax highlighted code blocks fully parsed
-- All images decoded and cached
-
-### The Solution - Virtual Scrolling
-
-```
-┌─────────────────────────────────────┐
-│  Placeholders (virtualized)         │  ← Not in DOM
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│  Buffer Zone (1200px)               │
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│  Real Messages                      │  ← In DOM
-│  ══════════════════════════════════ │
-│  VIEWPORT (visible)                 │  ← What you see
-│  ══════════════════════════════════ │
-│  Real Messages                      │  ← In DOM
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│  Buffer Zone (1200px)               │
-│  ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │
-│  Placeholders (virtualized)         │  ← Not in DOM
-└─────────────────────────────────────┘
-```
-
-**Key Concepts**:
-1. **Remove** messages far from viewport
-2. **Replace** with height-preserving placeholders (no scroll jump)
-3. **Restore** seamlessly when scrolling brings them back
-4. **Buffer zones** ensure smooth restoration before visible
-
-## 🔧 Technical Highlights
-
-- **No React internals**: Pure DOM manipulation, works with any ChatGPT update
-- **Chrome MV3 compliant**: Production-ready extension manifest
-- **Memory safe**: Proper cleanup prevents leaks
-- **Zero dependencies**: Vanilla JavaScript, no libraries
-- **Well documented**: 600+ lines of inline comments
-
-## 🐛 Known Limitations
-
-1. **React vDOM overhead**: React still tracks all messages (~20-30% overhead remains)
-2. **Event listeners**: Cached messages keep listeners (good: preserved functionality, bad: not fully freed)
-3. **ChatGPT updates**: Selector changes require maintenance (trade-off for stability)
-
-These are architectural limitations that can only be solved by hooking into React internals (fragile) or intercepting ChatGPT's API (complex).
-
-## 🤝 Contributing
-
-Contributions are welcome! Areas for improvement:
-
-- **Adaptive buffer sizing** based on scroll velocity
-- **Predictive loading** in scroll direction only
-- **IndexedDB caching** for true memory freedom
-- **Service worker** integration for API-level pagination
-- **Tests** for virtualization logic
-- **Performance monitoring** dashboard
-
-### Development Setup
-```bash
-# Clone repo
-git clone https://github.com/garanovich/Trimwise.git
-cd Trimwise
-
-# Make changes to content.js
-
-# Load unpacked in Chrome
-# chrome://extensions/ → Load unpacked → Select Trimwise folder
-
-# Test on ChatGPT
-# Open long conversation (100+ messages)
-# Monitor: DevTools → Performance → Memory
-```
-
-### Testing Checklist
-- [ ] Messages virtualize when scrolling away
-- [ ] Messages restore when scrolling back
-- [ ] Scroll position never jumps
-- [ ] "Show more" button works correctly
-- [ ] Settings persist across reloads
-- [ ] No console errors
-- [ ] Memory usage reduced (DevTools → Memory)
-
-## ☕ Support Development
-
-If this extension saves your sanity in long ChatGPT sessions:
-
-- ⭐ **Star this repo** on GitHub
-- ☕ **Buy me a coffee**: [Ko-Fi](https://ko-fi.com/rentanek0)
-- 🐛 **Report bugs**: [GitHub Issues](https://github.com/garanovich/Trimwise/issues)
-- 💡 **Suggest features**: [GitHub Discussions](https://github.com/garanovich/Trimwise/discussions)
-
-## 📜 License
-
-MIT License - see [LICENSE](./LICENSE) file for details
-
----
-
-## 📌 Version History
-
-### v2.1 (2025-10-30) - Message Collapse
-- Auto-collapse long user messages (600px+ height)
-- Expand/Collapse buttons with smooth animations
-- Reduces page weight and improves scroll performance
-- Integrates seamlessly with virtual scrolling system
-- Collapse state preserved during message restoration
-
-### v2.0 (2025-10-30) - Virtual Scrolling
-- Complete rewrite with true virtual scrolling
-- 70-90% memory reduction (removes messages from DOM)
-- 95% CPU reduction (MutationObserver vs polling)
-- IntersectionObserver for seamless restoration
-- Production-ready with extensive documentation
-
-### v1.1 (Previous)
-- Dynamic message display with settings
-- "Show more" button improvements
-- Visual enhancements
-
-### v1.0 (Initial)
-- Basic hide/show with `display: none`
-- Fixed batch size (50 messages)
-
----
-
-**Made with ❤️ for the ChatGPT community**
-
-*Having issues? Check [ARCHITECTURE.md](./ARCHITECTURE.md) for troubleshooting or [open an issue](https://github.com/garanovich/Trimwise/issues).*
+## License
+MIT
